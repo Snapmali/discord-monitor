@@ -160,7 +160,7 @@ class DiscordMonitor(discord.Client):
         :param message: Message
         :return:
         """
-        # 消息标注事件亦会被捕获，同时其content为空，需特判排除
+        # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
         if self.is_monitored_user(message.author, message.guild.id) and (message.content != '' or len(message.attachments) > 0):
             self.process_message(message, '发送消息')
 
