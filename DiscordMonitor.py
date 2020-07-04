@@ -129,6 +129,13 @@ class DiscordMonitor(discord.Client):
         """
         print('Logged in as %s, id: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id))
 
+    async def on_disconnect(self):
+        """
+        监听断开连接事件，重写自discord.Client
+        :return:
+        """
+        print('Disconnected...')
+
     async def on_message(self, message):
         """
         监听消息发送事件，重写自discord.Client
