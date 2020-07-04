@@ -1,0 +1,15 @@
+{
+
+    "token": "User Token or Bot Token",
+    "is_bot": true,
+    "coolq_port": 5700,
+    "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080",
+    "monitor": {
+        "user_id": {"User ID": "Display name", "123456789": "John Smith"},
+        "server": [1234567890]
+    },
+    "push": {
+        "QQ_group": [[1234567890, true, false], [9876543210, true, true]],
+        "QQ_user": [[1234567890, true, false], [9876543210, true, true]]
+    }
+}
