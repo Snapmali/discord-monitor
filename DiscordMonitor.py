@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import datetime
+import traceback
+
 import discord
 import json
 import os
@@ -383,6 +385,9 @@ if __name__ == '__main__':
         print('连接超时，请检查连接状态及代理设置')
     except discord.errors.LoginFailure:
         print('登录失败，请检查Token及bot设置是否正确，或更新Token')
+    except Exception:
+        print('登录失败，请检查config.json文件中各参数是否正确')
+        traceback.print_exc()
 
     if platform.system() == 'Windows':
         os.system('pause')
