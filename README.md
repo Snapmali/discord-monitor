@@ -1,4 +1,4 @@
-#功能介绍
+# 功能介绍
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
@@ -10,9 +10,9 @@
 
 脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
 
-#食用方法
+# 食用方法
 
-##环境依赖
+## 环境依赖
 
 基于python3.7版本编写，其他版本未测试。3.4及以下版本应无法运行。同时未在Linux上进行测试。
 
@@ -23,11 +23,11 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 * 在Windows下，直接下载安装酷Q软件，并在安装目录下新建`app`文件夹，将cool-http-api插件的`io.github.richardchien.coolqhttpapi.cpk`文件放入其中。运行并登录QQ小号后，右键点击悬浮窗，在应用->应用管理中启用cool-http-api插件即可。其默认监听端口为5700。
 * 由于未在Linux上测试，建议查阅[lovezzzxxx](https://github.com/lovezzzxxx)的[livemonitor](https://github.com/lovezzzxxx/livemonitor#qq%E6%8E%A8%E9%80%81%E5%8F%AF%E9%80%89)脚本的Readme进行安装。
 
-##脚本运行
+## 脚本运行
 
 将`DiscordMonitor.py`和`config.json`放入同一文件夹下。运行前需要自定义`config.json`文件：
 
-```json
+```
 {
     //Discord用户或Bot的Token字段（你插的眼）
     "token": "User Token or Bot Token", 
@@ -66,13 +66,13 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 配置文件修改完毕后，在命令行中运行`python DiscordMonitor.py`即可。推送消息中默认时区为东八区。
 
-#已知问题
+# 已知问题
 
-####私聊推送失效
+#### 私聊推送失效
 
 利用酷Q向私聊中推送消息时，需要双方互为好友且对方已向己方发送过消息。
 
-#结语
+# 结语
 
 暂无新功能计划，限于个人原因可能无法经常更新。由于本人几乎没有工程经验，代码略shi，在此表示歉意。若有大佬愿意接手或者据此扩展自己脚本功能，必然十分荣幸不胜感激。
 
