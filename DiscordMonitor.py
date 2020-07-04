@@ -3,19 +3,21 @@
 import datetime
 import discord
 import json
+import os
+import platform
 import requests
 import threading
 import time
 
 from aiohttp import ClientConnectorError, ClientProxyConnectionError
-from dateutil import tz
+from pytz import timezone as tz
 
 # Config file path
 config_file = 'config.json'
 # Log file path
 log_path = 'discord_monitor.log'
 # Timezone
-timezone_sh = tz.gettz('Asia/Shanghai')
+timezone = tz('Asia/Shanghai')
 
 with open(config_file, 'r', encoding='utf8') as f:
     config = json.load(f)
@@ -59,19 +61,20 @@ class DiscordMonitor(discord.Client):
         :param status: 消息动态
         :return:
         """
-        t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone_sh).__format__('%Y/%m/%d %H:%M:%S')
+        t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).__format__('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s' % \
                    (t, status, message.author.id,
                     message.author.name + '#' + message.author.discriminator,
                     message.guild.name, message.channel.name, message.content)
         add_log(log_text)
-        push_text = '【Discord %s %s】\n正文：%s\n频道：%s #%s\n时间：%s UTC+8' % \
+        push_text = '【Discord %s %s】\n正文：%s\n频道：%s #%s\n时间：%s %s' % \
                     (self.monitoring_id[str(message.author.id)],
                      status,
                      message.content,
                      message.guild.name,
                      message.channel.name,
-                     t)
+                     t,
+                     timezone.zone)
         push_message(push_text, 1)
 
     def process_pin(self, message, status, last_pin):
@@ -82,19 +85,20 @@ class DiscordMonitor(discord.Client):
         :param last_pin: datetime.datetime 最新标注信息的时间戳
         :return:
         """
-        t = last_pin.replace(tzinfo=datetime.timezone.utc).astimezone(timezone_sh).__format__('%Y/%m/%d %H:%M:%S')
+        t = last_pin.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).__format__('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s' % \
                    (t, status, message.author.id,
                     message.author.name + '#' + message.author.discriminator,
                     message.guild.name, message.channel.name, message.content)
         add_log(log_text)
-        push_text = '【Discord %s】\n正文：%s\n频道：%s #%s\n作者：%s\n时间：%s UTC+8' % \
+        push_text = '【Discord %s】\n正文：%s\n频道：%s #%s\n作者：%s\n时间：%s %s' % \
                     (status,
                      message.content,
                      message.guild.name,
                      message.channel.name,
                      message.author.name + '#' + message.author.discriminator,
-                     t)
+                     t,
+                     timezone.zone)
         push_message(push_text, 1)
 
     def process_user_update(self, before, after, user, status):
@@ -112,13 +116,14 @@ class DiscordMonitor(discord.Client):
                     user.name + '#' + user.discriminator,
                     user.guild.name, before, after)
         add_log(log_text)
-        push_text = '【Discord %s %s】\n变更前：%s\n变更后：%s\n频道：%s\n时间：%s UTC+8' % \
+        push_text = '【Discord %s %s】\n变更前：%s\n变更后：%s\n频道：%s\n时间：%s %s' % \
                     (self.monitoring_id[str(user.id)],
                      status,
                      before,
                      after,
                      user.guild.name,
-                     t)
+                     t,
+                     timezone.zone)
         push_message(push_text, 2)
 
     async def on_connect(self):
@@ -353,10 +358,10 @@ def add_log(log_text):
 
 if __name__ == '__main__':
     if proxy != '':
-        # 直接插眼
+        # 云插眼
         dc = DiscordMonitor(user_id, servers, proxy=proxy)
     else:
-        # 云插眼
+        # 直接插眼
         dc = DiscordMonitor(user_id, servers)
     try:
         print('Logging in...')
@@ -367,3 +372,6 @@ if __name__ == '__main__':
         print('连接超时，请检查连接状态及代理设置')
     except discord.errors.LoginFailure:
         print('登录失败，请检查Token及bot设置是否正确，或更新Token')
+
+    if platform.system() == 'Windows':
+        os.system('pause')
