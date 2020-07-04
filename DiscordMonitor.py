@@ -61,16 +61,27 @@ class DiscordMonitor(discord.Client):
         :param status: 消息动态
         :return:
         """
+        attachment_urls = [attachment.url for attachment in message.attachments]
+        attachment_str = '; '.join(attachment_urls)
+        if len(attachment_str) > 0:
+            attachment_log = '. Attachment: ' + attachment_str
+        else:
+            attachment_log = ''
         t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).__format__('%Y/%m/%d %H:%M:%S')
-        log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s' % \
+        log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s%s' % \
                    (t, status, message.author.id,
                     message.author.name + '#' + message.author.discriminator,
-                    message.guild.name, message.channel.name, message.content)
+                    message.guild.name, message.channel.name, message.content, attachment_log)
         add_log(log_text)
-        push_text = '【Discord %s %s】\n正文：%s\n频道：%s #%s\n时间：%s %s' % \
+        if len(attachment_str) > 0:
+            attachment_push = '\n附件：' + attachment_str
+        else:
+            attachment_push = ''
+        push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
                     (self.monitoring_id[str(message.author.id)],
                      status,
                      message.content,
+                     attachment_push,
                      message.guild.name,
                      message.channel.name,
                      t,
@@ -148,7 +159,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         # 消息标注事件亦会被捕获，同时其content为空，需特判排除
-        if self.is_monitored_user(message.author, message.guild.id) and message.content != '':
+        if self.is_monitored_user(message.author, message.guild.id) and (message.content != '' or len(message.attachments) > 0):
             self.process_message(message, '发送消息')
 
     async def on_message_delete(self, message):
