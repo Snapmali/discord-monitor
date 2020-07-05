@@ -14,6 +14,8 @@
 
 ## 环境依赖
 
+<b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，在Windows下可直接运行，且包含酷Q及coolq-http-api，无需再安装依赖。</b>
+
 基于python3.7版本编写，其他版本未测试。3.4及以下版本应无法运行。同时未在Linux上进行测试。
 
 外部依赖库：requests, discord.py。可分别在命令行中执行`pip install requests`和`pip install discord.py`进行安装。
