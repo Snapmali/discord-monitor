@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import asyncio
 import datetime
 import re
 import sys
@@ -54,14 +55,6 @@ rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '
 rep = dict((re.escape(k), v) for k, v in rep.items())
 pattern = re.compile('|'.join(rep.keys()))
 
-# logging
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
-
-
 class DiscordMonitor(discord.Client):
 
     def __init__(self, monitoring_id, monitoring_server, **kwargs):
@@ -70,6 +63,9 @@ class DiscordMonitor(discord.Client):
         self.monitoring_server = monitoring_server
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
+        self.username_dict = {}
+        self.nick_dict = {}
+        self.connect_times = 0
 
     def is_monitored_user(self, user, server):
         """
@@ -180,8 +176,66 @@ class DiscordMonitor(discord.Client):
         t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
         log_text = 'Logged in as %s, ID: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id)
         print(log_text + '\n')
-        log_text = '[INFO][%s] %s' % (t, log_text)
+        log_text = '[INFO][%s][Discord] %s' % (t, log_text)
         add_log(log_text)
+        is_bot = self.user.bot
+        for uid in self.monitoring_id:
+            uid = int(uid)
+            user = None
+            for guild in self.guilds:
+                try:
+                    user = await guild.fetch_member(uid)
+                    if not is_bot:
+                        try:
+                            self.nick_dict[uid][guild.id] = user.nick
+                        except:
+                            self.nick_dict[uid] = {guild.id: user.nick}
+                except:
+                    continue
+            if user:
+                self.username_dict[uid] = [user.name, user.discriminator]
+            else:
+                t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+                log_text = '[ERROR][%s][Discord] Fetch ID%s\'s username failed.' % (t, uid)
+                add_log(log_text)
+        self.connect_times += 1
+        if not is_bot:
+            await self.watch_nick(self.connect_times)
+
+    async def watch_nick(self, times):
+        while times == self.connect_times:
+            await asyncio.sleep(60)
+            for uid in self.monitoring_id:
+                uid = int(uid)
+                user = None
+                for guild in self.guilds:
+                    try:
+                        user = await guild.fetch_member(uid)
+                        try:
+                            self.nick_dict[uid][guild.id]
+                        except KeyError:
+                            try:
+                                self.nick_dict[uid][guild.id] = user.nick
+                            except KeyError:
+                                self.nick_dict[uid] = {guild.id: user.nick}
+                            continue
+                        if self.nick_dict[uid][guild.id] != user.nick:
+                            self.process_user_update(self.nick_dict[uid][guild.id], user.nick, user, '昵称更新')
+                            self.nick_dict[uid][guild.id] = user.nick
+                    except:
+                        continue
+                if user:
+                    try:
+                        self.username_dict[uid]
+                    except KeyError:
+                        self.username_dict[uid] = [user.name, user.discriminator]
+                        continue
+                    if self.username_dict[uid][0] != user.name or self.username_dict[uid][1] != user.discriminator:
+                        before_screenname = self.username_dict[uid][0] + '#' + self.username_dict[uid][1]
+                        after_screenname = user.name + '#' + user.discriminator
+                        self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
+                        self.username_dict[uid][0] = user.name
+                        self.username_dict[uid][1] = user.discriminator
 
     async def on_disconnect(self):
         """
@@ -190,8 +244,9 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
-        log_text = '[WARN][%s] Disconnected...' % t
+        log_text = '[WARN][%s][Discord] Disconnected...' % t
         add_log(log_text)
+        print()
 
     async def on_message(self, message):
         """
@@ -259,9 +314,15 @@ class DiscordMonitor(discord.Client):
                     self.process_user_update(self.get_status(before.status), self.get_status(after.status), before, '状态更新')
                     self.delete_event(event)
             # 用户名或Tag变更
-            if before.name != after.name or before.discriminator != after.discriminator:
-                before_screenname = before.name + '#' + before.discriminator
+            try:
+                self.username_dict[before.id]
+            except KeyError:
+                self.username_dict[before.id] = [after.name, after.discriminator]
+            if self.username_dict[before.id][0] != after.name or self.username_dict[before.id][1] != after.discriminator:
+                before_screenname = self.username_dict[before.id][0] + '#' + self.username_dict[before.id][1]
                 after_screenname = after.name + '#' + after.discriminator
+                self.username_dict[before.id][0] = after.name
+                self.username_dict[before.id][1] = after.discriminator
                 event = before_screenname + after_screenname
                 if self.check_event(event):
                     self.process_user_update(before_screenname, after_screenname, before, '用户名更新')
@@ -408,9 +469,9 @@ def add_log(log_text):
     """
     log_text = log_text.replace('\n', '\\n')
     print(log_text)
-    with open(log_path, 'a', encoding='utf8') as f:
-        f.write(log_text)
-        f.write('\n')
+    with open(log_path, 'a', encoding='utf8') as log:
+        log.write(log_text)
+        log.write('\n')
 
 
 if __name__ == '__main__':
