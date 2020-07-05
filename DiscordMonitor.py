@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 import datetime
 import re
+import sys
 import traceback
 
 import discord
 import json
+import logging
 import os
 import platform
 import requests
@@ -24,22 +26,38 @@ timezone = tz('Asia/Shanghai')
 
 lock = threading.Lock()
 
-with open(config_file, 'r', encoding='utf8') as f:
-    config = json.load(f)
-    token = config['token']
-    bot = config['is_bot']
-    coolq_port = config['coolq_port']
-    proxy = config['proxy']
-
-    user_id = config['monitor']['user_id']
-    servers = set(config['monitor']['server'])
-    qq_group = config['push']['QQ_group']
-    qq_user = config['push']['QQ_user']
+while True:
+    try:
+        with open(config_file, 'r', encoding='utf8') as f:
+            config = json.load(f)
+            token = config['token']
+            bot = config['is_bot']
+            coolq_port = config['coolq_port']
+            proxy = config['proxy']
+            user_id = config['monitor']['user_id']
+            servers = set(config['monitor']['server'])
+            qq_group = config['push']['QQ_group']
+            qq_user = config['push']['QQ_user']
+            break
+    except FileNotFoundError:
+        config_file = input('配置文件不存在，请输入配置文件位置(默认为config.json): ')
+    except KeyError:
+        print('配置文件读取出错，请检查config.json各参数是否正确')
+        if platform.system() == 'Windows':
+            os.system('pause')
+        sys.exit(1)
 
 # F**k URL
 rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '&': '%26', '=': '%3D'}
 rep = dict((re.escape(k), v) for k, v in rep.items())
 pattern = re.compile('|'.join(rep.keys()))
+
+# logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 
 class DiscordMonitor(discord.Client):
@@ -157,7 +175,11 @@ class DiscordMonitor(discord.Client):
 
         :return:
         """
-        print('Logged in as %s, id: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id))
+        t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+        log_text = 'Logged in as %s, ID: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id)
+        print(log_text + '\n')
+        log_text = '[INFO][%s] %s' % (t, log_text)
+        add_log(log_text)
 
     async def on_disconnect(self):
         """
@@ -165,7 +187,9 @@ class DiscordMonitor(discord.Client):
 
         :return:
         """
-        print('Disconnected...')
+        t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+        log_text = '[WARN][%s] Disconnected...' % t
+        add_log(log_text)
 
     async def on_message(self, message):
         """
