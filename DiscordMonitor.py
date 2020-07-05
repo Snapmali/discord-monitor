@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import datetime
+import re
 import traceback
 
 import discord
@@ -15,11 +16,13 @@ from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from pytz import timezone as tz
 
 # Config file path
-config_file = 'config.json'
+config_file = 'config_own.json'
 # Log file path
 log_path = 'discord_monitor.log'
 # Timezone
 timezone = tz('Asia/Shanghai')
+
+lock = threading.Lock()
 
 with open(config_file, 'r', encoding='utf8') as f:
     config = json.load(f)
@@ -33,7 +36,10 @@ with open(config_file, 'r', encoding='utf8') as f:
     qq_group = config['push']['QQ_group']
     qq_user = config['push']['QQ_user']
 
-lock = threading.Lock()
+# F**k URL
+rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '&': '%26', '=': '%3D'}
+rep = dict((re.escape(k), v) for k, v in rep.items())
+pattern = re.compile('|'.join(rep.keys()))
 
 
 class DiscordMonitor(discord.Client):
@@ -48,6 +54,7 @@ class DiscordMonitor(discord.Client):
     def is_monitored_user(self, user, server):
         """
         判断事件是否由指定Server、指定用户发出
+
         :param user:
         :param server:
         :return:
@@ -59,6 +66,7 @@ class DiscordMonitor(discord.Client):
     def process_message(self, message, status):
         """
         处理消息动态，并生成推行消息文本及log
+
         :param message: Message
         :param status: 消息动态
         :return:
@@ -93,6 +101,7 @@ class DiscordMonitor(discord.Client):
     def process_pin(self, message, status, last_pin):
         """
         处理标注信息动态，并生成推送消息文本及log
+
         :param message: Message
         :param status: 事件类型
         :param last_pin: datetime.datetime 最新标注信息的时间戳
@@ -117,6 +126,7 @@ class DiscordMonitor(discord.Client):
     def process_user_update(self, before, after, user, status):
         """
         处理用户动态，并生成推送消息文本及log
+
         :param before:
         :param after:
         :param user: Member或User
@@ -141,8 +151,10 @@ class DiscordMonitor(discord.Client):
 
     async def on_connect(self):
         """
-        监听连接事件，重写自discord.Client\n
-        ***眼来了***\n
+        监听连接事件，重写自discord.Client
+
+        ***眼来了***
+
         :return:
         """
         print('Logged in as %s, id: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id))
@@ -150,6 +162,7 @@ class DiscordMonitor(discord.Client):
     async def on_disconnect(self):
         """
         监听断开连接事件，重写自discord.Client
+
         :return:
         """
         print('Disconnected...')
@@ -157,6 +170,7 @@ class DiscordMonitor(discord.Client):
     async def on_message(self, message):
         """
         监听消息发送事件，重写自discord.Client
+
         :param message: Message
         :return:
         """
@@ -167,6 +181,7 @@ class DiscordMonitor(discord.Client):
     async def on_message_delete(self, message):
         """
         监听消息删除事件，重写自discord.Client
+
         :param message: Message
         :return:
         """
@@ -176,6 +191,7 @@ class DiscordMonitor(discord.Client):
     async def on_message_edit(self, before, after):
         """
         监听消息编辑事件，重写自discord.Client
+
         :param before: Message
         :param after: Message
         :return:
@@ -186,6 +202,7 @@ class DiscordMonitor(discord.Client):
     async def on_guild_channel_pins_update(self, channel, last_pin):
         """
         监听频道内标注消息更新事件，重写自discord.Client
+
         :param channel: 频道
         :param last_pin: datetime.datetime 最新标注消息的发送时间
         :return:
@@ -197,6 +214,7 @@ class DiscordMonitor(discord.Client):
     async def on_member_update(self, before, after):
         """
         监听用户状态更新事件，重写自discord.Client
+
         :param before: Member
         :param after: Member
         :return:
@@ -243,6 +261,7 @@ class DiscordMonitor(discord.Client):
     def get_status(self, status):
         """
         将api的用户在线状态转换为中文
+
         :param status: api中的用户在线状态
         :return: 中文在线状态
         """
@@ -254,6 +273,7 @@ class DiscordMonitor(discord.Client):
     def check_event(self, event):
         """
         检查该事件是否已在用户动态事件set中，不在则将事件加入set，防止眼和监测用户同在多个Server中时重复推送用户动态
+
         :param event: event
         :return: True if yes, otherwise False
         """
@@ -269,6 +289,7 @@ class DiscordMonitor(discord.Client):
     def delete_event(self, event):
         """
         设置线程延时删除set中的用户动态事件
+
         :param event: event
         :return:
         """
@@ -278,6 +299,7 @@ class DiscordMonitor(discord.Client):
     def delete_thread(self, event):
         """
         作为线程5秒后删除set中的用户动态事件
+
         :param event: event
         :return:
         """
@@ -290,6 +312,7 @@ class DiscordMonitor(discord.Client):
 def push_message(message, permission):
     """
     建立线程并将消息推送至cooq-http-api
+
     :param message: message text
     :param permission: 1表示消息动态，2表示用户动态
     :return:
@@ -307,20 +330,14 @@ def push_message(message, permission):
 def push_thread(message, qq_id, id_type):
     """
     作为线程将消息推送至cooq-http-api
+
     :param message: message text
     :param qq_id: QQ user ID or group ID
     :param id_type: 'group'表示群聊, 'user'私聊
     :return:
     """
-    # F**k URL
-    message = message.replace('%', '%25')
-    message = message.replace('#', '%23')
-    message = message.replace(' ', '%20')
-    message = message.replace('/', '%2F')
-    message = message.replace('+', '%2B')
-    message = message.replace('?', '%3F')
-    message = message.replace('&', '%26')
-    message = message.replace('=', '%3D')
+    message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
+
     if id_type == 'group':
         url = 'http://localhost:%d/send_group_msg?group_id=%d&message=%s' % \
               (coolq_port, qq_id, message)
@@ -359,6 +376,7 @@ def push_thread(message, qq_id, id_type):
 def add_log(log_text):
     """
     Write log to file and print.
+
     :param log_text: Log text
     :return:
     """
