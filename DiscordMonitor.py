@@ -16,7 +16,7 @@ from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from pytz import timezone as tz
 
 # Config file path
-config_file = 'config_own.json'
+config_file = 'config.json'
 # Log file path
 log_path = 'discord_monitor.log'
 # Timezone
