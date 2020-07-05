@@ -17,8 +17,6 @@ import time
 from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from pytz import timezone as tz
 
-# Config file path
-config_file = 'config.json'
 # Log file path
 log_path = 'discord_monitor.log'
 # Timezone
@@ -27,7 +25,11 @@ timezone = tz('Asia/Shanghai')
 lock = threading.Lock()
 
 while True:
+    config_file = 'config.json'
     try:
+        config_file_temp = input('请输入配置文件路径，空输入则为默认(默认为config.json):\n')
+        if config_file_temp != '':
+            config_file = config_file_temp
         with open(config_file, 'r', encoding='utf8') as f:
             config = json.load(f)
             token = config['token']
@@ -40,7 +42,7 @@ while True:
             qq_user = config['push']['QQ_user']
             break
     except FileNotFoundError:
-        config_file = input('配置文件不存在，请输入配置文件位置(默认为config.json): ')
+        print('配置文件不存在')
     except KeyError:
         print('配置文件读取出错，请检查config.json各参数是否正确')
         if platform.system() == 'Windows':
