@@ -3,7 +3,7 @@
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin）
-* 用户动态：可监测用户用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新
+* 用户动态：通过Bot监视时可监测用户用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户用户名及标签更新、Server内昵称更新。
 * 可将监测到的动态由[酷Q](https://cqp.cc/)推送至QQ私聊及群聊
 * 由Server及用户ID指定监测的Server及用户
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
@@ -43,6 +43,9 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
     //网络代理的http地址，留空（即"proxy": ""）表示不设置代理
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080", 
 
+    //非Bot用户时的轮询间隔时间，单位为秒
+    "interval": 60,
+
     "monitor": {
         //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
@@ -62,9 +65,11 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 其中监测的Discord用户及Server的ID可在Discord UI中右键点击用户或Server中得到。
 
-用于监测的Bot（电子眼）的Token可在Discord Developer中查看，用户（肉眼）的Token需在浏览器的开发者工具中获得，具体方法可观看视频[How to get your Discord Token(Youtube)](https://youtu.be/tI1lzqzLQCs)，不算复杂。
+用于监测的Bot（电子眼）的Token可在Discord Developer中查看，非Bot用户（肉眼）的Token需在浏览器的开发者工具中获得，具体方法可观看视频[How to get your Discord Token(Youtube)](https://youtu.be/tI1lzqzLQCs)，不算复杂。
 
-<b>需要注意，通过用户（肉眼）Token使用本脚本可能违反Discord使用协议（请参阅[Automated user accounts (self-bots)](https://support.discord.com/hc/en-us/articles/115002192352)），并可能导致账号封停。有条件的话建议使用Bot，否则</b>~~比如fanbox server啥的~~<b>请谨慎使用或使用小号（义眼）。</b>
+<b>需要注意，通过用户Token使用本脚本可能违反Discord使用协议（请参阅[Automated user accounts (self-bots)](https://support.discord.com/hc/en-us/articles/115002192352)），并可能导致账号封停。有条件的话建议使用Bot，否则</b>~~比如某fanbox server~~<b>请谨慎使用或使用小号（义眼）。</b>
+
+<b>同时，通过非Bot用户监视时，利用事件监测用户动态方法失效，仅可通过定时查询api方法监测用户用户名及标签更新、Server内昵称更新，此时动态将不会及时推送，同时无法监测在线状态更新及游戏动态更新。</b>
 
 配置文件修改完毕后，在命令行中运行`python DiscordMonitor.py`即可。推送消息中默认时区为东八区。
 
