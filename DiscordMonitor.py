@@ -37,6 +37,7 @@ while True:
             bot = config['is_bot']
             coolq_port = config['coolq_port']
             proxy = config['proxy']
+            interval = config['interval']
             user_id = config['monitor']['user_id']
             servers = set(config['monitor']['server'])
             qq_group = config['push']['QQ_group']
@@ -44,7 +45,7 @@ while True:
             break
     except FileNotFoundError:
         print('配置文件不存在')
-    except KeyError:
+    except Exception:
         print('配置文件读取出错，请检查config.json各参数是否正确')
         if platform.system() == 'Windows':
             os.system('pause')
@@ -55,9 +56,17 @@ rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '
 rep = dict((re.escape(k), v) for k, v in rep.items())
 pattern = re.compile('|'.join(rep.keys()))
 
+# discord logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
+
+
 class DiscordMonitor(discord.Client):
 
-    def __init__(self, monitoring_id, monitoring_server, **kwargs):
+    def __init__(self, monitoring_id, monitoring_server, query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
         self.monitoring_id = monitoring_id
         self.monitoring_server = monitoring_server
@@ -65,6 +74,7 @@ class DiscordMonitor(discord.Client):
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
         self.username_dict = {}
         self.nick_dict = {}
+        self.interval = query_interval
         self.connect_times = 0
 
     def is_monitored_user(self, user, server):
@@ -204,7 +214,7 @@ class DiscordMonitor(discord.Client):
 
     async def watch_nick(self, times):
         while times == self.connect_times:
-            await asyncio.sleep(60)
+            await asyncio.sleep(self.interval)
             for uid in self.monitoring_id:
                 uid = int(uid)
                 user = None
@@ -477,10 +487,10 @@ def add_log(log_text):
 if __name__ == '__main__':
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, servers, proxy=proxy)
+        dc = DiscordMonitor(user_id, servers, query_interval=interval, proxy=proxy)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, servers)
+        dc = DiscordMonitor(user_id, servers, query_interval=interval)
     try:
         print('Logging in...')
         dc.run(token, bot=bot)
