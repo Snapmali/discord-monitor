@@ -56,13 +56,6 @@ rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '
 rep = dict((re.escape(k), v) for k, v in rep.items())
 pattern = re.compile('|'.join(rep.keys()))
 
-# discord logging
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
-
 
 class DiscordMonitor(discord.Client):
 
@@ -89,7 +82,7 @@ class DiscordMonitor(discord.Client):
             return True
         return False
 
-    def process_message(self, message, status):
+    async def process_message(self, message, status):
         """
         处理消息动态，并生成推行消息文本及log
 
@@ -124,7 +117,7 @@ class DiscordMonitor(discord.Client):
                      timezone.zone)
         push_message(push_text, 1)
 
-    def process_pin(self, message, status, last_pin):
+    async def process_pin(self, message, status, last_pin):
         """
         处理标注信息动态，并生成推送消息文本及log
 
@@ -149,7 +142,7 @@ class DiscordMonitor(discord.Client):
                      timezone.zone)
         push_message(push_text, 1)
 
-    def process_user_update(self, before, after, user, status):
+    async def process_user_update(self, before, after, user, status):
         """
         处理用户动态，并生成推送消息文本及log
 
@@ -230,7 +223,7 @@ class DiscordMonitor(discord.Client):
                                 self.nick_dict[uid] = {guild.id: user.nick}
                             continue
                         if self.nick_dict[uid][guild.id] != user.nick:
-                            self.process_user_update(self.nick_dict[uid][guild.id], user.nick, user, '昵称更新')
+                            await self.process_user_update(self.nick_dict[uid][guild.id], user.nick, user, '昵称更新')
                             self.nick_dict[uid][guild.id] = user.nick
                     except:
                         continue
@@ -243,7 +236,7 @@ class DiscordMonitor(discord.Client):
                     if self.username_dict[uid][0] != user.name or self.username_dict[uid][1] != user.discriminator:
                         before_screenname = self.username_dict[uid][0] + '#' + self.username_dict[uid][1]
                         after_screenname = user.name + '#' + user.discriminator
-                        self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
+                        await self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
                         self.username_dict[uid][0] = user.name
                         self.username_dict[uid][1] = user.discriminator
 
@@ -267,7 +260,7 @@ class DiscordMonitor(discord.Client):
         """
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
         if self.is_monitored_user(message.author, message.guild.id) and (message.content != '' or len(message.attachments) > 0):
-            self.process_message(message, '发送消息')
+            await self.process_message(message, '发送消息')
 
     async def on_message_delete(self, message):
         """
@@ -277,7 +270,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         if self.is_monitored_user(message.author, message.guild.id):
-            self.process_message(message, '删除消息')
+            await self.process_message(message, '删除消息')
 
     async def on_message_edit(self, before, after):
         """
@@ -288,7 +281,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         if self.is_monitored_user(after.author, after.guild.id):
-            self.process_message(after, '编辑消息')
+            await self.process_message(after, '编辑消息')
 
     async def on_guild_channel_pins_update(self, channel, last_pin):
         """
@@ -300,7 +293,8 @@ class DiscordMonitor(discord.Client):
         """
         if channel.guild.id in self.monitoring_server or True in self.monitoring_server:
             pins = await channel.pins()
-            self.process_pin(pins[0], '标注消息', last_pin)
+            if len(pins) > 0:
+                await self.process_pin(pins[0], '标注消息', last_pin)
 
     async def on_member_update(self, before, after):
         """
@@ -315,13 +309,14 @@ class DiscordMonitor(discord.Client):
             if before.nick != after.nick:
                 event = str(before.nick) + str(after.nick)
                 if self.check_event(event):
-                    self.process_user_update(before.nick, after.nick, before, '昵称更新')
+                    await self.process_user_update(before.nick, after.nick, before, '昵称更新')
                     self.delete_event(event)
             # 在线状态变更
             if before.status != after.status:
                 event = str(before.id) + str(before.status) + str(after.status)
                 if self.check_event(event):
-                    self.process_user_update(self.get_status(before.status), self.get_status(after.status), before, '状态更新')
+                    await self.process_user_update(self.get_status(before.status), self.get_status(after.status),
+                                                   before, '状态更新')
                     self.delete_event(event)
             # 用户名或Tag变更
             try:
@@ -335,24 +330,24 @@ class DiscordMonitor(discord.Client):
                 self.username_dict[before.id][1] = after.discriminator
                 event = before_screenname + after_screenname
                 if self.check_event(event):
-                    self.process_user_update(before_screenname, after_screenname, before, '用户名更新')
+                    await self.process_user_update(before_screenname, after_screenname, before, '用户名更新')
                     self.delete_event(event)
             # 用户活动变更
             if before.activity != after.activity:
                 if not before.activity:
                     event = after.activity.name
                     if self.check_event(event):
-                        self.process_user_update(None, after.activity.name, before, '活动更新')
+                        await self.process_user_update(None, after.activity.name, before, '活动更新')
                         self.delete_event(event)
                 elif not after.activity:
                     event = before.activity.name
                     if self.check_event(event):
-                        self.process_user_update(before.activity.name, None, before, '活动更新')
+                        await self.process_user_update(before.activity.name, None, before, '活动更新')
                         self.delete_event(event)
                 elif before.activity.name != after.activity.name:
                     event = before.activity.name + after.activity.name
                     if self.check_event(event):
-                        self.process_user_update(before.activity.name, after.activity.name, before, '活动更新')
+                        await self.process_user_update(before.activity.name, after.activity.name, before, '活动更新')
                         self.delete_event(event)
 
     def get_status(self, status):
