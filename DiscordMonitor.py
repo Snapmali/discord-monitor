@@ -2,21 +2,20 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import datetime
-import re
-import sys
-import traceback
-
 import discord
 import json
-import logging
 import os
 import platform
+import re
 import requests
+import sys
 import threading
 import time
+import traceback
 
 from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from pytz import timezone as tz
+from win10toast import ToastNotifier
 
 # Log file path
 log_path = 'discord_monitor.log'
@@ -38,6 +37,7 @@ while True:
             coolq_port = config['coolq_port']
             proxy = config['proxy']
             interval = config['interval']
+            toast = config['toast']
             user_id = config['monitor']['user_id']
             servers = set(config['monitor']['server'])
             qq_group = config['push']['QQ_group']
@@ -46,7 +46,7 @@ while True:
     except FileNotFoundError:
         print('配置文件不存在')
     except Exception:
-        print('配置文件读取出错，请检查config.json各参数是否正确')
+        print('配置文件读取出错，请检查配置文件各参数是否正确')
         if platform.system() == 'Windows':
             os.system('pause')
         sys.exit(1)
@@ -59,7 +59,7 @@ pattern = re.compile('|'.join(rep.keys()))
 
 class DiscordMonitor(discord.Client):
 
-    def __init__(self, monitoring_id, monitoring_server, query_interval=60, **kwargs):
+    def __init__(self, monitoring_id, monitoring_server, do_toast, query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
         self.monitoring_id = monitoring_id
         self.monitoring_server = monitoring_server
@@ -69,6 +69,11 @@ class DiscordMonitor(discord.Client):
         self.nick_dict = {}
         self.interval = query_interval
         self.connect_times = 0
+        if platform.system() == 'Windows' and platform.release() == '10' and do_toast:
+            self.do_toast = True
+            self.toaster = ToastNotifier()
+        else:
+            self.do_toast = False
 
     def is_monitored_user(self, user, server):
         """
@@ -92,11 +97,21 @@ class DiscordMonitor(discord.Client):
         """
         attachment_urls = [attachment.url for attachment in message.attachments]
         attachment_str = '; '.join(attachment_urls)
+        if self.do_toast:
+            if status == '标注消息':
+                toast_title = '%s #%s %s' % (message.guild.name, message.channel.name, status)
+            else:
+                toast_title = '%s %s' % (self.monitoring_id[str(message.author.id)], status)
+            toast_text = message.content + attachment_str
+            self.toaster.show_toast(toast_title, toast_text, threaded=True)
         if len(attachment_str) > 0:
             attachment_log = '. Attachment: ' + attachment_str
         else:
             attachment_log = ''
-        t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).__format__('%Y/%m/%d %H:%M:%S')
+        if status == '发送消息':
+            t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).strftime('%Y/%m/%d %H:%M:%S')
+        else:
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s%s' % \
                    (t, status, message.author.id,
                     message.author.name + '#' + message.author.discriminator,
@@ -106,40 +121,26 @@ class DiscordMonitor(discord.Client):
             attachment_push = '\n附件：' + attachment_str
         else:
             attachment_push = ''
-        push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
-                    (self.monitoring_id[str(message.author.id)],
-                     status,
-                     message.content,
-                     attachment_push,
-                     message.guild.name,
-                     message.channel.name,
-                     t,
-                     timezone.zone)
-        push_message(push_text, 1)
-
-    async def process_pin(self, message, status, last_pin):
-        """
-        处理标注信息动态，并生成推送消息文本及log
-
-        :param message: Message
-        :param status: 事件类型
-        :param last_pin: datetime.datetime 最新标注信息的时间戳
-        :return:
-        """
-        t = last_pin.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).__format__('%Y/%m/%d %H:%M:%S')
-        log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s' % \
-                   (t, status, message.author.id,
-                    message.author.name + '#' + message.author.discriminator,
-                    message.guild.name, message.channel.name, message.content)
-        add_log(log_text)
-        push_text = '【Discord %s】\n正文：%s\n频道：%s #%s\n作者：%s\n时间：%s %s' % \
-                    (status,
-                     message.content,
-                     message.guild.name,
-                     message.channel.name,
-                     message.author.name + '#' + message.author.discriminator,
-                     t,
-                     timezone.zone)
+        if status == '标注消息':
+            push_text = '【Discord %s】\n正文：%s%s\n频道：%s #%s\n作者：%s\n时间：%s %s' % \
+                        (status,
+                         message.content,
+                         attachment_push,
+                         message.guild.name,
+                         message.channel.name,
+                         message.author.name + '#' + message.author.discriminator,
+                         t,
+                         timezone.zone)
+        else:
+            push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
+                        (self.monitoring_id[str(message.author.id)],
+                         status,
+                         message.content,
+                         attachment_push,
+                         message.guild.name,
+                         message.channel.name,
+                         t,
+                         timezone.zone)
         push_message(push_text, 1)
 
     async def process_user_update(self, before, after, user, status):
@@ -152,7 +153,11 @@ class DiscordMonitor(discord.Client):
         :param status: 事件类型
         :return:
         """
-        t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+        if self.do_toast:
+            toast_title = '%s %s' % (self.monitoring_id[str(user.id)], status)
+            toast_text = '变更后：%s' % after
+            self.toaster.show_toast(toast_title, toast_text, threaded=True)
+        t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Before: %s. After: %s.' % \
                    (t, status, user.id,
                     user.name + '#' + user.discriminator,
@@ -176,7 +181,7 @@ class DiscordMonitor(discord.Client):
 
         :return:
         """
-        t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+        t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = 'Logged in as %s, ID: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id)
         print(log_text + '\n')
         log_text = '[INFO][%s][Discord] %s' % (t, log_text)
@@ -198,7 +203,7 @@ class DiscordMonitor(discord.Client):
             if user:
                 self.username_dict[uid] = [user.name, user.discriminator]
             else:
-                t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+                t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
                 log_text = '[ERROR][%s][Discord] Fetch ID%s\'s username failed.' % (t, uid)
                 add_log(log_text)
         self.connect_times += 1
@@ -252,7 +257,7 @@ class DiscordMonitor(discord.Client):
 
         :return:
         """
-        t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+        t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '[WARN][%s][Discord] Disconnected...' % t
         add_log(log_text)
         print()
@@ -300,7 +305,7 @@ class DiscordMonitor(discord.Client):
         if channel.guild.id in self.monitoring_server or True in self.monitoring_server:
             pins = await channel.pins()
             if len(pins) > 0:
-                await self.process_pin(pins[0], '标注消息', last_pin)
+                await self.process_message(pins[0], '标注消息')
 
     async def on_member_update(self, before, after):
         """
@@ -449,7 +454,7 @@ def push_thread(message, qq_id, id_type):
         except:
             if i == 4:
                 # 哦 5次全超时
-                t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+                t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
                 log = '[ERROR][%s][Push] Timeout! Failed to send message to %s %d. Message: %s' % \
                       (t, id_type, qq_id, message)
                 add_log(log)
@@ -458,14 +463,14 @@ def push_thread(message, qq_id, id_type):
             continue
         if response == 200:
             # 成了
-            t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
             log = '[INFO][%s][Push] Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
                   (t, id_type, qq_id, response, i + 1, message)
             add_log(log)
             break
         elif i == 4:
             # 未超时但失败，还没出过这问题
-            t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
             log = '[ERROR][%s][Push] Failed to send message to %s %d. Response:%d. Message: %s' % \
                   (t, id_type, qq_id, response, message)
             add_log(log)
@@ -488,10 +493,10 @@ def add_log(log_text):
 if __name__ == '__main__':
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, servers, query_interval=interval, proxy=proxy)
+        dc = DiscordMonitor(user_id, servers, toast, query_interval=interval, proxy=proxy)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, servers, query_interval=interval)
+        dc = DiscordMonitor(user_id, servers, toast, query_interval=interval)
     try:
         print('Logging in...')
         dc.run(token, bot=bot)
@@ -502,7 +507,7 @@ if __name__ == '__main__':
     except discord.errors.LoginFailure:
         print('登录失败，请检查Token及bot设置是否正确，或更新Token')
     except Exception:
-        print('登录失败，请检查config.json文件中各参数是否正确')
+        print('登录失败，请检查配置文件中各参数是否正确')
         traceback.print_exc()
 
     if platform.system() == 'Windows':

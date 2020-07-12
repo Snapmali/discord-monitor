@@ -4,6 +4,7 @@
 
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin）
 * 用户动态：通过Bot监视时可监测用户用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户用户名及标签更新、Server内昵称更新。
+* Windows 10系统下可将动态推送至通知中心
 * 可将监测到的动态由[酷Q](https://cqp.cc/)推送至QQ私聊及群聊
 * 由Server及用户ID指定监测的Server及用户
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
@@ -18,7 +19,7 @@
 
 基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
-外部依赖库：requests, discord.py。可分别在命令行中执行`pip install requests`和`pip install discord.py`进行安装。
+外部依赖库：requests, discord.py, win10toast。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install win10toast`进行安装。
 
 QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)插件实现。
 
@@ -45,6 +46,9 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
     //非Bot用户时的轮询间隔时间，单位为秒
     "interval": 60,
+
+    //是否将动态推送至Windows 10系统通知中，非Windows 10系统下此选项失效
+    "toast": true
 
     "monitor": {
         //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串
@@ -77,11 +81,15 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 #### 私聊推送失效
 
-利用酷Q向私聊中推送消息时，需要双方互为好友且对方已向己方发送过消息。
+利用酷Q向私聊中推送消息时，需要双方互为好友且对方已向己方发送过消息才可向对方发送消息。
 
 #### 编辑消息及删除消息监视失灵
 
 目前仅可捕获脚本启动后发送的消息的编辑及删除事件，启动前的消息暂时不能获知其编辑或删除。
+
+#### Windows 10系统通知推送丢失
+
+目前每条通知设定显示时间为5秒，在这段时间里此脚本若有其他通知推送将会被直接丢弃。正在尝试修复此问题。
 
 #### 无征兆断连
 
