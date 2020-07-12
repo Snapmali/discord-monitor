@@ -103,7 +103,7 @@ class DiscordMonitor(discord.Client):
             else:
                 toast_title = '%s %s' % (self.monitoring_id[str(message.author.id)], status)
             toast_text = message.content + attachment_str
-            self.toaster.show_toast(toast_title, toast_text, threaded=True)
+            self.toaster.show_toast(toast_title, toast_text, icon_path='icon.ico', threaded=True)
         if len(attachment_str) > 0:
             attachment_log = '. Attachment: ' + attachment_str
         else:
@@ -156,7 +156,7 @@ class DiscordMonitor(discord.Client):
         if self.do_toast:
             toast_title = '%s %s' % (self.monitoring_id[str(user.id)], status)
             toast_text = '变更后：%s' % after
-            self.toaster.show_toast(toast_title, toast_text, threaded=True)
+            self.toaster.show_toast(toast_title, toast_text, icon_path='icon.ico', threaded=True)
         t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Before: %s. After: %s.' % \
                    (t, status, user.id,
