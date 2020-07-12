@@ -16,7 +16,7 @@
 
 <b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，在Windows下可直接运行，且包含酷Q及coolq-http-api，无需再安装依赖。</b>
 
-基于python3.7版本编写，其他版本未测试。3.4及以下版本应无法运行。同时未在Linux上进行测试。
+基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
 外部依赖库：requests, discord.py。可分别在命令行中执行`pip install requests`和`pip install discord.py`进行安装。
 
@@ -85,4 +85,4 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 #### 无征兆断连
 
-为程序监听消息发送事件时的异步执行导致主循环阻塞，已初步修复，问题暂未复现。
+为程序监听消息发送事件时的异步执行导致主循环阻塞，已修复，问题未复现。
