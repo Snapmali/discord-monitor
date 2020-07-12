@@ -5,6 +5,7 @@
     "coolq_port": 5700,
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080",
     "interval": 60,
+    "toast": true,
     "monitor": {
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
         "server": [1234567890]
