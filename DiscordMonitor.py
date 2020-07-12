@@ -170,7 +170,7 @@ class DiscordMonitor(discord.Client):
 
     async def on_connect(self):
         """
-        监听连接事件，重写自discord.Client
+        监听连接事件，每次连接会刷新所监视用户的用户名列表，使用非bot用户监视时会另外刷新昵称列表。并启动轮询监视。重写自discord.Client
 
         ***眼来了***
 
@@ -206,6 +206,12 @@ class DiscordMonitor(discord.Client):
             await self.watch_nick(self.connect_times)
 
     async def watch_nick(self, times):
+        """
+        轮询监视用户名变动，使用非bot用户监视时会另外监视昵称变动
+
+        :param times: 连接次数，发生变动终止本次轮询，防止重复监视
+        :return:
+        """
         while times == self.connect_times:
             await asyncio.sleep(self.interval)
             for uid in self.monitoring_id:
@@ -280,7 +286,7 @@ class DiscordMonitor(discord.Client):
         :param after: Message
         :return:
         """
-        if self.is_monitored_user(after.author, after.guild.id):
+        if self.is_monitored_user(after.author, after.guild.id) and before.content != after.content:
             await self.process_message(after, '编辑消息')
 
     async def on_guild_channel_pins_update(self, channel, last_pin):
