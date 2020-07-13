@@ -1,4 +1,6 @@
 # 功能介绍
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
+
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
@@ -90,3 +92,7 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 #### 无征兆断连
 
 为程序监听消息发送事件时的异步执行导致主循环阻塞，已修复，问题未复现。
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_large)
