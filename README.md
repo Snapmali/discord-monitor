@@ -1,4 +1,8 @@
-# 功能介绍
+# discord-monitor
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
+
+## 功能介绍
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
@@ -11,9 +15,9 @@
 
 脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
 
-# 食用方法
+## 食用方法
 
-## 环境依赖
+### 环境依赖
 
 <b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，在Windows下可直接运行，且包含酷Q及coolq-http-api，无需再安装依赖。</b>
 
@@ -26,7 +30,7 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 * 在Windows下，直接下载安装酷Q软件，并在安装目录下新建`app`文件夹，将cool-http-api插件的`io.github.richardchien.coolqhttpapi.cpk`文件放入其中。运行并登录QQ小号后，右键点击悬浮窗，在应用->应用管理中启用cool-http-api插件即可。其默认监听端口为5700。
 * 在Linux下，酷Q需要安装Docker环境，Docker安装有很多教程，可以百度或谷歌。之后可直接安装已启用ciilq-http-api的酷Q镜像，具体步骤请参阅[此文档](https://cqhttp.cc/docs/4.15/#/Docker)。
 
-## 脚本运行
+### 脚本运行
 
 将`DiscordMonitor.py`和`config.json`放入同一文件夹下。运行前需要自定义`config.json`文件：
 
@@ -77,7 +81,7 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 配置文件修改完毕后，在命令行中运行`python DiscordMonitor.py`即可。推送消息中默认时区为东八区。
 
-# 已知问题
+## 已知问题
 
 #### 私聊推送失效
 
@@ -90,3 +94,7 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 #### 无征兆断连
 
 为程序监听消息发送事件时的异步执行导致主循环阻塞，已修复，问题未复现。
+
+## License
+
+This software is under the GPL-3.0 license.
