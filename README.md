@@ -24,7 +24,7 @@
 QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)插件实现。
 
 * 在Windows下，直接下载安装酷Q软件，并在安装目录下新建`app`文件夹，将cool-http-api插件的`io.github.richardchien.coolqhttpapi.cpk`文件放入其中。运行并登录QQ小号后，右键点击悬浮窗，在应用->应用管理中启用cool-http-api插件即可。其默认监听端口为5700。
-* 由于未在Linux上测试，建议查阅[lovezzzxxx](https://github.com/lovezzzxxx)的[livemonitor](https://github.com/lovezzzxxx/livemonitor#qq%E6%8E%A8%E9%80%81%E5%8F%AF%E9%80%89)脚本的Readme进行安装。
+* 在Linux下，酷Q需要安装Docker环境，Docker安装有很多教程，可以百度或谷歌。之后可直接安装已启用ciilq-http-api的酷Q镜像，具体步骤请参阅[此文档](https://cqhttp.cc/docs/4.15/#/Docker)。
 
 ## 脚本运行
 
@@ -86,10 +86,6 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 #### 编辑消息及删除消息监视失灵
 
 目前仅可捕获脚本启动后发送的消息的编辑及删除事件，启动前的消息暂时不能获知其编辑或删除。
-
-#### Windows 10系统通知推送丢失
-
-目前每条通知设定显示时间为5秒，在这段时间里此脚本若有其他通知推送将会被直接丢弃。正在尝试修复此问题。
 
 #### 无征兆断连
 
