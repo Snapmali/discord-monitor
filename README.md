@@ -30,7 +30,7 @@
 QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)插件实现。
 
 * 在Windows下，直接下载安装酷Q软件，并在安装目录下新建`app`文件夹，将cool-http-api插件的`io.github.richardchien.coolqhttpapi.cpk`文件放入其中。运行并登录QQ小号后，右键点击悬浮窗，在应用->应用管理中启用cool-http-api插件即可。其默认监听端口为5700。
-* 在Linux下，酷Q需要安装Docker环境，Docker安装有很多教程，可以百度或谷歌。之后可直接安装已启用ciilq-http-api的酷Q镜像，具体步骤请参阅[此文档](https://cqhttp.cc/docs/4.15/#/Docker)。
+* 在Linux下，酷Q需要安装Docker环境，Docker安装有很多教程，可以百度或谷歌。之后可直接安装已启用coolq-http-api的酷Q镜像，具体步骤请参阅[此文档](https://cqhttp.cc/docs/4.15/#/Docker)。
 
 ### 脚本运行
 
