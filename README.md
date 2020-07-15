@@ -25,7 +25,7 @@
 
 基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
-外部依赖库：requests, discord.py, plyer。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer`进行安装。
+外部依赖库：requests, discord.py, plyer, pytz。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer``pip install pytz`进行安装。
 
 QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)插件实现。
 
