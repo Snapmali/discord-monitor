@@ -1,8 +1,8 @@
 # discord-monitor
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Snapmali/discord-monitor?include_prereleases)
-![GitHub](https://img.shields.io/github/license/snapmali/discord-monitor)
+![GitHub release (latest by date including pre-releases)](https://github.com/Snapmali/discord-monitor/releases)
+![GitHub](https://github.com/Snapmali/discord-monitor/blob/master/LICENSE)
 
 ## 功能介绍
 
