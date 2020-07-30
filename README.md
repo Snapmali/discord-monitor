@@ -1,8 +1,8 @@
 # discord-monitor
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
 [![GitHub release](https://img.shields.io/github/v/release/Snapmali/discord-monitor?include_prereleases)](https://github.com/Snapmali/discord-monitor/releases)
 [![GitHub](https://img.shields.io/github/license/snapmali/discord-monitor)](https://github.com/Snapmali/discord-monitor/blob/master/LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
 
 ## 功能介绍
 
@@ -20,7 +20,7 @@
 
 ### 环境依赖
 
-<b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，在Windows下可直接运行，且包含酷Q及coolq-http-api，无需再安装依赖。</b>
+<b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，配置过config.json后在Windows下可直接运行，且包含酷Q及coolq-http-api，无需再安装依赖。</b>
 
 基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
