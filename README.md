@@ -8,11 +8,10 @@
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
-* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin）
-* 用户动态：通过Bot监视时可监测用户用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户用户名及标签更新、Server内昵称更新。
+* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由Server及用户ID指定被监测的Server及用户
+* 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
 * Windows 10系统下可将动态推送至通知中心
 * 可将监测到的动态由[酷Q](https://cqp.cc/)推送至QQ私聊及群聊
-* 由Server及用户ID指定监测的Server及用户
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
 脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
@@ -25,7 +24,7 @@
 
 基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
-外部依赖库：requests, discord.py, plyer, pytz。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer``pip install pytz`进行安装。
+外部依赖库：requests, discord.py, plyer, pytz。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer` `pip install pytz`进行安装。
 
 QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)插件实现。
 
@@ -46,6 +45,9 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
     //coolq-http-api插件的监听端口，默认为5700
     "coolq_port": 5700, 
+
+    //coolq-http-api插件的access token，若未设置access token请留空（即"coolq_token": ""）
+    "coolq_token": "Coolq-http-api access token, leave blank for no token",
     
     //网络代理的http地址，留空（即"proxy": ""）表示不设置代理
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080", 
@@ -57,18 +59,24 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
     "toast": true
 
     "monitor": {
-        //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串
-        "user_id": {"User ID": "Display name", "123456789": "John Smith"},
 
-        //监听的server列表，列表中值为服务器ID，为整型数。特别的，列表为[true]时表示监听所有Server
+        //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串。
+        //特别的，列表为空时表示监听频道中所有消息
+        "user_id": {"User ID": "Display name", "123456789": "John Smith"},
+        //"user_id": {},
+
+        //监听的server列表，列表中值为服务器ID，为整型数。特别的，列表为空时表示监听所有Server
         "server": [1234567890, 9876543210]
-        //"server: [true]"
+        //"server: []"
     },
     "push": {
         //推送的QQ用户或群聊，为嵌套列表。底层列表第一个值为QQ号或群号；
         //第二个值为布尔型，表示是否推送消息动态；第三个值为布尔型，表示是否推送用户动态
+        //列表可留空，表示不推送给私聊或群聊
         "QQ_group": [[1234567890, true, false], [9876543210, true, true]],
         "QQ_user": [[1234567890, true, false], [9876543210, true, true]]
+        //"QQ_group": [],
+        //"QQ_user": []
     }
 }
 ```

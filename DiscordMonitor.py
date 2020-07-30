@@ -35,6 +35,7 @@ while True:
             token = config['token']
             bot = config['is_bot']
             coolq_port = config['coolq_port']
+            coolq_token = config['coolq_token']
             proxy = config['proxy']
             interval = config['interval']
             toast = config['toast']
@@ -56,6 +57,8 @@ rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '
 rep = dict((re.escape(k), v) for k, v in rep.items())
 pattern = re.compile('|'.join(rep.keys()))
 
+coolq_token = pattern.sub(lambda m: rep[re.escape(m.group(0))], coolq_token)
+
 
 class DiscordMonitor(discord.Client):
 
@@ -74,15 +77,22 @@ class DiscordMonitor(discord.Client):
         else:
             self.do_toast = False
 
-    def is_monitored_user(self, user, server):
+    def is_monitored_user(self, user, server, member_update=False):
         """
         判断事件是否由指定Server、指定用户发出
 
-        :param user:
-        :param server:
+        :param member_update:是否为用户动态
+        :param user:动态来源用户
+        :param server:动态来源Server
         :return:
         """
-        if str(user.id) in self.monitoring_id and (server in self.monitoring_server or True in self.monitoring_server):
+        if len(self.monitoring_id) == 0:
+            if member_update:
+                return False
+            if server in self.monitoring_server or len(self.monitoring_server) == 0:
+                return True
+        elif str(user.id) in self.monitoring_id and (
+                server in self.monitoring_server or len(self.monitoring_server) == 0):
             return True
         return False
 
@@ -99,8 +109,10 @@ class DiscordMonitor(discord.Client):
         if self.do_toast:
             if status == '标注消息':
                 toast_title = '%s #%s %s' % (message.guild.name, message.channel.name, status)
-            else:
+            elif len(self.monitoring_id) != 0:
                 toast_title = '%s %s' % (self.monitoring_id[str(message.author.id)], status)
+            else:
+                toast_title = '%s %s' % (message.author.name, status)
             toast_text = message.content + attachment_str
             notification.notify(toast_title, toast_text, app_icon='icon.ico', app_name='Discord Monitor')
         if len(attachment_str) > 0:
@@ -108,7 +120,8 @@ class DiscordMonitor(discord.Client):
         else:
             attachment_log = ''
         if status == '发送消息':
-            t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).strftime('%Y/%m/%d %H:%M:%S')
+            t = message.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(timezone).strftime(
+                '%Y/%m/%d %H:%M:%S')
         else:
             t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s%s' % \
@@ -130,9 +143,19 @@ class DiscordMonitor(discord.Client):
                          message.author.name + '#' + message.author.discriminator,
                          t,
                          timezone.zone)
-        else:
+        elif len(self.monitoring_id) != 0:
             push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
                         (self.monitoring_id[str(message.author.id)],
+                         status,
+                         message.content,
+                         attachment_push,
+                         message.guild.name,
+                         message.channel.name,
+                         t,
+                         timezone.zone)
+        else:
+            push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
+                        (message.author.name,
                          status,
                          message.content,
                          attachment_push,
@@ -145,6 +168,8 @@ class DiscordMonitor(discord.Client):
     async def process_user_update(self, before, after, user, status):
         """
         处理用户动态，并生成推送消息文本及log
+
+        未指定被检测用户时应无法进入此方法
 
         :param before:
         :param after:
@@ -206,7 +231,7 @@ class DiscordMonitor(discord.Client):
                 log_text = '[ERROR][%s][Discord] Fetch ID%s\'s username failed.' % (t, uid)
                 add_log(log_text)
         self.connect_times += 1
-        if not is_bot:
+        if not is_bot and len(self.monitoring_id) != 0:
             await self.watch_nick(self.connect_times)
 
     async def watch_nick(self, times):
@@ -269,7 +294,8 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
-        if self.is_monitored_user(message.author, message.guild.id) and (message.content != '' or len(message.attachments) > 0):
+        if self.is_monitored_user(message.author, message.guild.id) and (
+                message.content != '' or len(message.attachments) > 0):
             await self.process_message(message, '发送消息')
 
     async def on_message_delete(self, message):
@@ -314,7 +340,7 @@ class DiscordMonitor(discord.Client):
         :param after: Member
         :return:
         """
-        if self.is_monitored_user(before, before.guild.id):
+        if self.is_monitored_user(before, before.guild.id, member_update=True):
             # 昵称变更
             if before.nick != after.nick:
                 event = str(before.nick) + str(after.nick)
@@ -333,7 +359,8 @@ class DiscordMonitor(discord.Client):
                 self.username_dict[before.id]
             except KeyError:
                 self.username_dict[before.id] = [after.name, after.discriminator]
-            if self.username_dict[before.id][0] != after.name or self.username_dict[before.id][1] != after.discriminator:
+            if self.username_dict[before.id][0] != after.name or self.username_dict[before.id][
+                1] != after.discriminator:
                 before_screenname = self.username_dict[before.id][0] + '#' + self.username_dict[before.id][1]
                 after_screenname = after.name + '#' + after.discriminator
                 self.username_dict[before.id][0] = after.name
@@ -440,12 +467,21 @@ def push_thread(message, qq_id, id_type):
     """
     message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
 
-    if id_type == 'group':
-        url = 'http://localhost:%d/send_group_msg?group_id=%d&message=%s' % \
-              (coolq_port, qq_id, message)
-    elif id_type == 'user':
-        url = 'http://localhost:%d/send_private_msg?user_id=%d&message=%s' % \
-              (coolq_port, qq_id, message)
+    # 判断是否设置coolq-http-qpi access token
+    if coolq_token == "":
+        if id_type == 'group':
+            url = 'http://localhost:%d/send_group_msg?group_id=%d&message=%s' % \
+                  (coolq_port, qq_id, message)
+        elif id_type == 'user':
+            url = 'http://localhost:%d/send_private_msg?user_id=%d&message=%s' % \
+                  (coolq_port, qq_id, message)
+    else:
+        if id_type == 'group':
+            url = 'http://localhost:%d/send_group_msg?access_token=%s&group_id=%d&message=%s' % \
+                  (coolq_port, coolq_token, qq_id, message)
+        elif id_type == 'user':
+            url = 'http://localhost:%d/send_private_msg?access_token=%s&user_id=%d&message=%s' % \
+                  (coolq_port, coolq_token, qq_id, message)
     # 5次重试
     for i in range(5):
         try:
