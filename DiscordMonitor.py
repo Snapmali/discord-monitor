@@ -40,6 +40,7 @@ while True:
             interval = config['interval']
             toast = config['toast']
             user_id = config['monitor']['user_id']
+            channels = config['monitor']['channel']
             servers = set(config['monitor']['server'])
             qq_group = config['push']['QQ_group']
             qq_user = config['push']['QQ_user']
@@ -62,9 +63,10 @@ coolq_token = pattern.sub(lambda m: rep[re.escape(m.group(0))], coolq_token)
 
 class DiscordMonitor(discord.Client):
 
-    def __init__(self, monitoring_id, monitoring_server, do_toast, query_interval=60, **kwargs):
+    def __init__(self, monitoring_id, monitoring_channel, monitoring_server, do_toast, query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
         self.monitoring_id = monitoring_id
+        self.monitoring_channel = monitoring_channel
         self.monitoring_server = monitoring_server
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
@@ -77,22 +79,29 @@ class DiscordMonitor(discord.Client):
         else:
             self.do_toast = False
 
-    def is_monitored_user(self, user, server, member_update=False):
+    def is_monitored_user(self, user, channel, server, member_update=False):
         """
         判断事件是否由指定Server、指定用户发出
 
+        :param channel:
         :param member_update:是否为用户动态
         :param user:动态来源用户
         :param server:动态来源Server
         :return:
         """
+        # 被检测用户列表为空
         if len(self.monitoring_id) == 0:
+            # 用户动态
             if member_update:
                 return False
-            if server in self.monitoring_server or len(self.monitoring_server) == 0:
+            # 消息动态
+            if channel in self.monitoring_channel or len(self.monitoring_channel) == 0:
                 return True
-        elif str(user.id) in self.monitoring_id and (
-                server in self.monitoring_server or len(self.monitoring_server) == 0):
+        # 用户动态
+        elif member_update and str(user.id) in self.monitoring_id and (server in self.monitoring_server or len(self.monitoring_server) == 0):
+            return True
+        # 消息动态
+        elif str(user.id) in self.monitoring_id and (channel in self.monitoring_channel or len(self.monitoring_channel) == 0):
             return True
         return False
 
@@ -294,8 +303,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
-        if self.is_monitored_user(message.author, message.guild.id) and (
-                message.content != '' or len(message.attachments) > 0):
+        if self.is_monitored_user(message.author, message.channel.id, None) and (message.content != '' or len(message.attachments) > 0):
             await self.process_message(message, '发送消息')
 
     async def on_message_delete(self, message):
@@ -305,7 +313,7 @@ class DiscordMonitor(discord.Client):
         :param message: Message
         :return:
         """
-        if self.is_monitored_user(message.author, message.guild.id):
+        if self.is_monitored_user(message.author, message.channel.id, None):
             await self.process_message(message, '删除消息')
 
     async def on_message_edit(self, before, after):
@@ -316,7 +324,7 @@ class DiscordMonitor(discord.Client):
         :param after: Message
         :return:
         """
-        if self.is_monitored_user(after.author, after.guild.id) and before.content != after.content:
+        if self.is_monitored_user(after.author, after.channel.id, None) and before.content != after.content:
             await self.process_message(after, '编辑消息')
 
     async def on_guild_channel_pins_update(self, channel, last_pin):
@@ -327,7 +335,7 @@ class DiscordMonitor(discord.Client):
         :param last_pin: datetime.datetime 最新标注消息的发送时间
         :return:
         """
-        if channel.guild.id in self.monitoring_server or True in self.monitoring_server:
+        if channel.id in self.monitoring_channel or len(self.monitoring_server) == 0:
             pins = await channel.pins()
             if len(pins) > 0:
                 await self.process_message(pins[0], '标注消息')
@@ -340,7 +348,7 @@ class DiscordMonitor(discord.Client):
         :param after: Member
         :return:
         """
-        if self.is_monitored_user(before, before.guild.id, member_update=True):
+        if self.is_monitored_user(before, None, before.guild.id, member_update=True):
             # 昵称变更
             if before.nick != after.nick:
                 event = str(before.nick) + str(after.nick)
@@ -528,10 +536,10 @@ def add_log(log_text):
 if __name__ == '__main__':
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, servers, toast, query_interval=interval, proxy=proxy)
+        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, proxy=proxy)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, servers, toast, query_interval=interval)
+        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval)
     try:
         print('Logging in...')
         dc.run(token, bot=bot)
