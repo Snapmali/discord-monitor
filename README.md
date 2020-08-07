@@ -6,6 +6,8 @@
 
 ## 功能介绍
 
+#### 由于酷Q停运，考虑等风头过去状况稳定后将QQ推送功能转移至其他机器人平台，不排除转投钉钉等IM软件或彻底放弃此功能的可能性，期间QQ推送功能可能无法使用，敬请谅解。
+
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道及用户ID指定被监测的频道及用户
@@ -108,7 +110,9 @@ QQ推送部分采用[酷Q](https://cqp.cc/)及[coolq-http-api](https://github.co
 
 #### 无征兆断连
 
-为程序监听消息发送事件时的异步执行导致主循环阻塞，已修复，问题未复现。
+若脚本出现断连且再未提示Logged in，但discord发送消息时脚本可正常反应，可能是由于未知原因脚本未捕获connect事件，实际对脚本运行无影响。
+
+如果在中国大陆运行脚本并使用代理，出现无法登录，或多次断连后脚本再无动态，且discord发送消息脚本也无反应的问题，可能是由于依赖库discord.py使用的Websockets库不支持代理连接，导致脚本配置的代理无法被正确使用，可参阅[#4204 Switching Websockets library to support proxy scenarios](https://github.com/Rapptz/discord.py/issues/4204)。实际上断连问题是否出现以及出现频率会受网络运营商、线路、地区等因素影响。暂无较完美的解决方案，可尝试在Windows端使用proxifier、或在Linux端使用netns，以避免在直接脚本中使用代理，从而绕开此问题，实际效果较为良好。
 
 ## License
 
