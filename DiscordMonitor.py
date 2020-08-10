@@ -8,6 +8,7 @@ import os
 import platform
 import re
 import requests
+import signal
 import sys
 import threading
 import time
@@ -431,6 +432,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         t = threading.Thread(args=(event,), target=self.delete_thread)
+        t.setDaemon(True)
         t.start()
 
     def delete_thread(self, event):
@@ -457,10 +459,12 @@ def push_message(message, permission):
     for group in qq_group:
         if group[permission]:
             t = threading.Thread(args=(message, group[0], 'group'), target=push_thread)
+            t.setDaemon(True)
             t.start()
     for user in qq_user:
         if user[permission]:
             t = threading.Thread(args=(message, user[0], 'user'), target=push_thread)
+            t.setDaemon(True)
             t.start()
 
 
@@ -541,6 +545,7 @@ if __name__ == '__main__':
         # 直接插眼
         dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval)
     try:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')
         dc.run(token, bot=bot)
     except ClientProxyConnectionError:
