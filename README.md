@@ -6,9 +6,9 @@
 
 ## 功能介绍
 
-#### 由于酷Q等机器人平台停运，为使QQ推送功能在此风波期间正常运转，可暂时使用[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)作为替代，本脚本利用的go-cqhttp API实现与原本使用的[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)基本相同，无需对<u>本脚本</u>配置文件进行修改。go-cqhttp详细用法请参见其文档。
+<b>由于酷Q等机器人平台停运，为使QQ推送功能在此风波期间正常运转，可暂时使用[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)作为替代，本脚本利用的go-cqhttp API实现与原本使用的[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)基本相同，无需对<u>本脚本</u>配置文件进行修改。go-cqhttp详细用法请参见其文档。</b>
 
-#### 但本脚本视情况仍不排除使用其他平台，或转投钉钉等IM软件，甚至彻底放弃此功能的可能性，敬请谅解。
+<b>但本脚本视情况仍不排除使用其他平台，或转投钉钉等IM软件，甚至彻底放弃此功能的可能性，敬请谅解。</b>
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
