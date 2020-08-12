@@ -336,7 +336,7 @@ class DiscordMonitor(discord.Client):
         :param last_pin: datetime.datetime 最新标注消息的发送时间
         :return:
         """
-        if channel.id in self.monitoring_channel or len(self.monitoring_server) == 0:
+        if channel.id in self.monitoring_channel or len(self.monitoring_channel) == 0:
             pins = await channel.pins()
             if len(pins) > 0:
                 await self.process_message(pins[0], '标注消息')
