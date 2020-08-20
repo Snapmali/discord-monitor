@@ -8,7 +8,7 @@
 
 <b>由于酷Q等机器人平台停运，为使QQ推送功能在此风波期间正常运转，可暂时使用[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)作为替代，本脚本利用的go-cqhttp API实现与原本使用的[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)基本相同，无需对***本脚本***配置文件进行修改。go-cqhttp详细用法请参见其文档。</b>
 
-<b>但本脚本视情况仍不排除使用其他平台，或转投钉钉等IM软件，甚至彻底放弃此功能的可能性，敬请谅解。</b>
+<b>但本脚本视情况仍不排除使用其他平台，或转用钉钉等IM软件，甚至彻底放弃此功能的可能性，敬请谅解。</b>
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
@@ -113,6 +113,8 @@ QQ推送部分***暂时***依赖[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)�
 #### 无征兆断连
 
 若脚本出现断连且再未提示Logged in，但discord发送消息时脚本可正常反应，可能是由于未知原因脚本未捕获connect事件，实际对脚本运行无影响。
+
+**↓此问题可能已修复**
 
 如果在中国大陆运行脚本并使用代理，出现无法登录，或多次断连后脚本再无动态，且discord发送消息脚本也无反应的问题，可能是由于依赖库discord.py使用的Websockets库不支持代理连接，导致脚本配置的代理无法被正确使用，可参阅[#4204 Switching Websockets library to support proxy scenarios](https://github.com/Rapptz/discord.py/issues/4204)。实际上断连问题是否出现以及出现频率会受网络运营商、线路、地区等因素影响。暂无较完美的解决方案，可尝试在Windows端使用proxifier、或在Linux端使用netns，以避免在直接脚本中使用代理，从而绕开此问题，实际效果较为良好。
 
