@@ -6,7 +6,7 @@
 
 ## 功能介绍
 
-<b>由于酷Q等机器人平台停运，为使QQ推送功能在此风波期间正常运转，可暂时使用[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)作为替代，本脚本利用的go-cqhttp API实现与原本使用的[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)基本相同，无需对***本脚本***配置文件进行修改。go-cqhttp详细用法请参见其文档。</b>
+<b>由于酷Q等机器人平台停运，为使QQ推送功能在此风波期间正常运转，可暂时使用[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等类cqhttp插件作为替代，本脚本利用的API实现与原本使用的[coolq-http-api](https://github.com/richardchien/coolq-http-api/releases)基本相同，无需对***本脚本***配置文件进行修改。具体插件或脚本的详细用法请参见其文档。</b>
 
 <b>但本脚本视情况仍不排除使用其他平台，或转用钉钉等IM软件，甚至彻底放弃此功能的可能性，敬请谅解。</b>
 
@@ -15,7 +15,7 @@
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道及用户ID指定被监测的频道及用户
 * 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
 * Windows 10系统下可将动态推送至通知中心
-* 可将监测到的动态由~~酷Q~~ [go-cqhttp](https://github.com/Mrs4s/go-cqhttp)推送至QQ私聊及群聊
+* 可将监测到的动态由~~酷Q~~ [cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等推送至QQ私聊及群聊
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
 脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
@@ -30,7 +30,7 @@
 
 外部依赖库：requests, discord.py, plyer, pytz。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer` `pip install pytz`进行安装。
 
-QQ推送部分***暂时***依赖[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)实现。其部署较为简单，在其[release](https://github.com/Mrs4s/go-cqhttp/releases)中下载系统对应版本后运行即可，具体使用方法请参阅其文档。
+QQ推送部分***暂时***依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等插件或脚本实现。其中go-cqhttp的部署较为简单，在其[release](https://github.com/Mrs4s/go-cqhttp/releases)中下载系统对应版本后运行即可，具体使用方法请参阅其文档。
 
 
 ### 脚本运行
@@ -45,10 +45,10 @@ QQ推送部分***暂时***依赖[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)�
     //上述Token是否属于Bot，是则为true，否则为false
     "is_bot": true, 
 
-    //go-cqhttp的监听端口，默认为5700
+    //cqhttp插件的监听端口，默认为5700
     "coolq_port": 5700, 
 
-    //go-cqhttp的access token，若未设置access token请留空（即"coolq_token": ""）
+    //cqhttp插件的access token，若未设置access token请留空（即"coolq_token": ""）
     "coolq_token": "Coolq-http-api access token, leave blank for no token",
     
     //网络代理的http地址，留空（即"proxy": ""）表示不设置代理
