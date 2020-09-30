@@ -35,7 +35,7 @@ while True:
             config = json.load(f)
             token = config['token']
             bot = config['is_bot']
-            coolq_port = config['coolq_port']
+            coolq_url = config['coolq_url'].rstrip('/')
             coolq_token = config['coolq_token']
             proxy = config['proxy']
             interval = config['interval']
@@ -53,13 +53,6 @@ while True:
         if platform.system() == 'Windows':
             os.system('pause')
         sys.exit(1)
-
-# F**k URL
-rep = {'%': '%25', '#': '%23', ' ': '%20', '/': '%2F', '+': '%2B', '?': '%3F', '&': '%26', '=': '%3D'}
-rep = dict((re.escape(k), v) for k, v in rep.items())
-pattern = re.compile('|'.join(rep.keys()))
-
-coolq_token = pattern.sub(lambda m: rep[re.escape(m.group(0))], coolq_token)
 
 
 class DiscordMonitor(discord.Client):
@@ -79,6 +72,12 @@ class DiscordMonitor(discord.Client):
             self.do_toast = True
         else:
             self.do_toast = False
+        self.message_monitoring = True
+        self.user_monitoring = True
+        if 0 in self.monitoring_channel:
+            self.message_monitoring = False
+        if 0 in self.monitoring_server:
+            self.user_monitoring = False
 
     def is_monitored_user(self, user, channel, server, member_update=False):
         """
@@ -220,6 +219,8 @@ class DiscordMonitor(discord.Client):
         print(log_text + '\n')
         log_text = '[INFO][%s][Discord] %s' % (t, log_text)
         add_log(log_text)
+        if not self.user_monitoring:
+            return
         is_bot = self.user.bot
         for uid in self.monitoring_id:
             uid = int(uid)
@@ -238,7 +239,7 @@ class DiscordMonitor(discord.Client):
                 self.username_dict[uid] = [user.name, user.discriminator]
             else:
                 t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-                log_text = '[ERROR][%s][Discord] Fetch ID%s\'s username failed.' % (t, uid)
+                log_text = '[ERROR][%s][Discord] Fetch ID %s\'s username failed.' % (t, uid)
                 add_log(log_text)
         self.connect_times += 1
         if not is_bot and len(self.monitoring_id) != 0:
@@ -303,6 +304,8 @@ class DiscordMonitor(discord.Client):
         :param message: Message
         :return:
         """
+        if not self.message_monitoring:
+            return
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
         if self.is_monitored_user(message.author, message.channel.id, None) and (message.content != '' or len(message.attachments) > 0):
             await self.process_message(message, '发送消息')
@@ -314,6 +317,8 @@ class DiscordMonitor(discord.Client):
         :param message: Message
         :return:
         """
+        if not self.message_monitoring:
+            return
         if self.is_monitored_user(message.author, message.channel.id, None):
             await self.process_message(message, '删除消息')
 
@@ -325,6 +330,8 @@ class DiscordMonitor(discord.Client):
         :param after: Message
         :return:
         """
+        if not self.message_monitoring:
+            return
         if self.is_monitored_user(after.author, after.channel.id, None) and before.content != after.content:
             await self.process_message(after, '编辑消息')
 
@@ -336,6 +343,8 @@ class DiscordMonitor(discord.Client):
         :param last_pin: datetime.datetime 最新标注消息的发送时间
         :return:
         """
+        if not self.message_monitoring:
+            return
         if channel.id in self.monitoring_channel or len(self.monitoring_channel) == 0:
             pins = await channel.pins()
             if len(pins) > 0:
@@ -349,6 +358,8 @@ class DiscordMonitor(discord.Client):
         :param after: Member
         :return:
         """
+        if not self.user_monitoring:
+            return
         if self.is_monitored_user(before, None, before.guild.id, member_update=True):
             # 昵称变更
             if before.nick != after.nick:
@@ -470,56 +481,75 @@ def push_message(message, permission):
 
 def push_thread(message, qq_id, id_type):
     """
-    作为线程将消息推送至cooq-http-api
-
+    作为线程将消息推送至cqhttp
     :param message: message text
     :param qq_id: QQ user ID or group ID
     :param id_type: 'group'表示群聊, 'user'私聊
     :return:
     """
-    message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
+    # message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
+    data = {'message': message, 'auto_escape': True}
+    headers = {'Content-type': 'application/json'}
+    url = '%s/send_msg' % coolq_url
 
-    # 判断是否设置coolq-http-qpi access token
-    if coolq_token == "":
-        if id_type == 'group':
-            url = 'http://localhost:%d/send_group_msg?group_id=%d&message=%s' % \
-                  (coolq_port, qq_id, message)
-        elif id_type == 'user':
-            url = 'http://localhost:%d/send_private_msg?user_id=%d&message=%s' % \
-                  (coolq_port, qq_id, message)
-    else:
-        if id_type == 'group':
-            url = 'http://localhost:%d/send_group_msg?access_token=%s&group_id=%d&message=%s' % \
-                  (coolq_port, coolq_token, qq_id, message)
-        elif id_type == 'user':
-            url = 'http://localhost:%d/send_private_msg?access_token=%s&user_id=%d&message=%s' % \
-                  (coolq_port, coolq_token, qq_id, message)
+    if id_type == 'group':
+        data['message_type'] = 'group'
+        data['group_id'] = qq_id
+    elif id_type == 'user':
+        data['message_type'] = 'private'
+        data['user_id'] = qq_id
+
+    # 判断是否设置cqhttp access token
+    if coolq_token is not "":
+        headers['Authorization'] = "Bearer " + coolq_token
+
     # 5次重试
     for i in range(5):
         try:
-            response = requests.post(url, timeout=(3, 10)).status_code
+            response = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=(3, 10)).status_code
         except:
             if i == 4:
                 # 哦 5次全超时
                 t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
                 log = '[ERROR][%s][Push] Timeout! Failed to send message to %s %d. Message: %s' % \
-                      (t, id_type, qq_id, message)
+                      (t, id_type, qq_id, data)
                 add_log(log)
                 break
             time.sleep(5)
             continue
         if response == 200:
-            # 成了
+            # cqhttp接受消息，但不知操作实际成功与否
             t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
             log = '[INFO][%s][Push] Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
-                  (t, id_type, qq_id, response, i + 1, message)
+                  (t, id_type, qq_id, response, i, data)
+            add_log(log)
+            break
+        if response == 401:
+            # token needed
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
+            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Access token is not provided. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
+            add_log(log)
+            break
+        if response == 403:
+            # token is wrong
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
+            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Access token is wrong. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
+            add_log(log)
+            break
+        if response == 404:
+            # url is wrong
+            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
+            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Coolq URL is wrong. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
             add_log(log)
             break
         elif i == 4:
             # 未超时但失败，还没出过这问题
             t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
             log = '[ERROR][%s][Push] Failed to send message to %s %d. Response:%d. Message: %s' % \
-                  (t, id_type, qq_id, response, message)
+                  (t, id_type, qq_id, response, data)
             add_log(log)
 
 
@@ -538,12 +568,13 @@ def add_log(log_text):
 
 
 if __name__ == '__main__':
+    intents = discord.Intents.all()
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, proxy=proxy)
+        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, proxy=proxy, intents=intents)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval)
+        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, intents=intents)
     try:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')

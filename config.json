@@ -2,7 +2,7 @@
 
     "token": "User Token or Bot Token",
     "is_bot": true,
-    "coolq_port": 5700,
+    "coolq_url": "http://localhost:5700",
     "coolq_token": "Coolq-http-api access token, leave blank for no token",
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080",
     "interval": 60,
