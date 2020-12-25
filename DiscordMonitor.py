@@ -42,18 +42,18 @@ while True:
             toast = config['toast']
             user_id = config['monitor']['user_id']
             channels = config['monitor']['channel']
-            channel_by_name_list = config['monitor']['channel_by_name']
+            channel_name_list = config['monitor']['channel_name']
             servers = set(config['monitor']['server'])
             qq_group = config['push']['QQ_group']
             qq_user = config['push']['QQ_user']
-            channel_by_name = dict()
-            for guild_ in channel_by_name_list:
+            channel_name = dict()
+            for guild_ in channel_name_list:
                 for i in range(1, len(guild_)):
                     try:
-                        channel_by_name[guild_[0]].add(guild_[i])
+                        channel_name[guild_[0]].add(guild_[i])
                     except KeyError:
-                        channel_by_name[guild_[0]] = set()
-                        channel_by_name[guild_[0]].add(guild_[i])
+                        channel_name[guild_[0]] = set()
+                        channel_name[guild_[0]].add(guild_[i])
             break
     except FileNotFoundError:
         print('配置文件不存在')
@@ -67,14 +67,14 @@ while True:
 class DiscordMonitor(discord.Client):
 
     def __init__(self, monitoring_user, monitoring_channel, monitoring_server, do_toast,
-                 monitoring_channel_by_name=None, query_interval=60, **kwargs):
+                 monitoring_channel_name=None, query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
         self.monitoring_user = monitoring_user
         self.monitoring_channel = monitoring_channel
         self.monitoring_server = monitoring_server
-        self.monitoring_channel_by_name = monitoring_channel_by_name
-        if len(self.monitoring_channel_by_name) == 0:
-            self.monitoring_channel_by_name = None
+        self.monitoring_channel_name = monitoring_channel_name
+        if len(self.monitoring_channel_name) == 0:
+            self.monitoring_channel_name = None
         else:
             self.monitoring_name2id = dict()
         self.event_set = set()
@@ -89,7 +89,7 @@ class DiscordMonitor(discord.Client):
             self.do_toast = False
         self.message_monitoring = True
         self.user_monitoring = True
-        if 0 in self.monitoring_channel and len(self.monitoring_channel_by_name) == 0:
+        if 0 in self.monitoring_channel and len(self.monitoring_channel_name) == 0:
             self.message_monitoring = False
         if 0 in self.monitoring_server or len(self.monitoring_user) == 0:
             self.user_monitoring = False
@@ -252,10 +252,10 @@ class DiscordMonitor(discord.Client):
                 else:
                     log_text = 'Fetch ID %s\'s username failed.' % uid
                     add_log(2, 'Discord', log_text)
-        if self.monitoring_channel_by_name:
+        if self.monitoring_channel_name:
             for guild in self.guilds:
                 try:
-                    channels = self.monitoring_channel_by_name[guild.name]
+                    channels = self.monitoring_channel_name[guild.name]
                     for channel in guild.channels:
                         if channel.name in channels:
                             self.monitoring_channel.append(channel.id)
@@ -267,7 +267,7 @@ class DiscordMonitor(discord.Client):
                 except KeyError:
                     continue
         self.connect_times += 1
-        if self.monitoring_channel_by_name or (not self.user.bot and self.user_monitoring):
+        if self.monitoring_channel_name or (not self.user.bot and self.user_monitoring):
             await self.polling(self.connect_times)
 
     async def polling(self, times):
@@ -279,7 +279,7 @@ class DiscordMonitor(discord.Client):
         """
         while times == self.connect_times:
             await asyncio.sleep(self.interval)
-            if self.monitoring_channel_by_name:
+            if self.monitoring_channel_name:
                 self.watch_channel()
             if not self.user.bot and self.user_monitoring:
                 await self.watch_nick()
@@ -292,7 +292,7 @@ class DiscordMonitor(discord.Client):
         """
         for guild in self.guilds:
             try:
-                channels = self.monitoring_channel_by_name[guild.name]
+                channels = self.monitoring_channel_name[guild.name]
                 for channel in guild.channels:
                     if channel.name in channels:
                         k = guild.name + '#' + channel.name
@@ -634,11 +634,11 @@ if __name__ == '__main__':
     if proxy != '':
         # 云插眼
         dc = DiscordMonitor(user_id, channels, servers, toast,
-                            monitoring_channel_by_name=channel_by_name, query_interval=interval, proxy=proxy, intents=intents)
+                            monitoring_channel_name=channel_name, query_interval=interval, proxy=proxy, intents=intents)
     else:
         # 直接插眼
         dc = DiscordMonitor(user_id, channels, servers, toast,
-                            monitoring_channel_by_name=channel_by_name, query_interval=interval, intents=intents)
+                            monitoring_channel_name=channel_name, query_interval=interval, intents=intents)
     try:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')

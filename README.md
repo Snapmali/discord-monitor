@@ -71,9 +71,9 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
 
         //通过频道名监听消息的频道列表，为嵌套列表。底层列表第一个值为Server名，其余值为频道名
         //仅作用于消息动态监听，留空时表示不通过频道名监听消息动态
-        "channel_by_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"],
+        "channel_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"],
                             ["Server 2 name", "Channel 4 name"]],
-        //"channel_by_name": []
+        //"channel_name": []
 
         //监听的server列表，列表中值为服务器ID，为整型数。特别的，列表为空时表示监听所有Server
         //仅作用于用户动态监听，填0时表示不监听用户动态
