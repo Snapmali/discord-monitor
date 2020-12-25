@@ -42,9 +42,18 @@ while True:
             toast = config['toast']
             user_id = config['monitor']['user_id']
             channels = config['monitor']['channel']
+            channel_by_name_list = config['monitor']['channel_by_name']
             servers = set(config['monitor']['server'])
             qq_group = config['push']['QQ_group']
             qq_user = config['push']['QQ_user']
+            channel_by_name = dict()
+            for guild_ in channel_by_name_list:
+                for i in range(1, len(guild_)):
+                    try:
+                        channel_by_name[guild_[0]].add(guild_[i])
+                    except KeyError:
+                        channel_by_name[guild_[0]] = set()
+                        channel_by_name[guild_[0]].add(guild_[i])
             break
     except FileNotFoundError:
         print('配置文件不存在')
@@ -57,11 +66,17 @@ while True:
 
 class DiscordMonitor(discord.Client):
 
-    def __init__(self, monitoring_id, monitoring_channel, monitoring_server, do_toast, query_interval=60, **kwargs):
+    def __init__(self, monitoring_user, monitoring_channel, monitoring_server, do_toast,
+                 monitoring_channel_by_name=None, query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
-        self.monitoring_id = monitoring_id
+        self.monitoring_user = monitoring_user
         self.monitoring_channel = monitoring_channel
         self.monitoring_server = monitoring_server
+        self.monitoring_channel_by_name = monitoring_channel_by_name
+        if len(self.monitoring_channel_by_name) == 0:
+            self.monitoring_channel_by_name = None
+        else:
+            self.monitoring_name2id = dict()
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
         self.username_dict = {}
@@ -74,9 +89,9 @@ class DiscordMonitor(discord.Client):
             self.do_toast = False
         self.message_monitoring = True
         self.user_monitoring = True
-        if 0 in self.monitoring_channel:
+        if 0 in self.monitoring_channel and len(self.monitoring_channel_by_name) == 0:
             self.message_monitoring = False
-        if 0 in self.monitoring_server:
+        if 0 in self.monitoring_server or len(self.monitoring_user) == 0:
             self.user_monitoring = False
 
     def is_monitored_user(self, user, channel, server, member_update=False):
@@ -90,7 +105,7 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         # 被检测用户列表为空
-        if len(self.monitoring_id) == 0:
+        if len(self.monitoring_user) == 0:
             # 用户动态
             if member_update:
                 return False
@@ -98,16 +113,16 @@ class DiscordMonitor(discord.Client):
             if channel in self.monitoring_channel or len(self.monitoring_channel) == 0:
                 return True
         # 用户动态
-        elif member_update and str(user.id) in self.monitoring_id and (server in self.monitoring_server or len(self.monitoring_server) == 0):
+        elif member_update and str(user.id) in self.monitoring_user and (server in self.monitoring_server or len(self.monitoring_server) == 0):
             return True
         # 消息动态
-        elif str(user.id) in self.monitoring_id and (channel in self.monitoring_channel or len(self.monitoring_channel) == 0):
+        elif str(user.id) in self.monitoring_user and (channel in self.monitoring_channel or len(self.monitoring_channel) == 0):
             return True
         return False
 
     async def process_message(self, message, status):
         """
-        处理消息动态，并生成推行消息文本及log
+        处理消息动态，并生成推送消息文本及log
 
         :param message: Message
         :param status: 消息动态
@@ -118,8 +133,8 @@ class DiscordMonitor(discord.Client):
         if self.do_toast:
             if status == '标注消息':
                 toast_title = '%s #%s %s' % (message.guild.name, message.channel.name, status)
-            elif len(self.monitoring_id) != 0:
-                toast_title = '%s %s' % (self.monitoring_id[str(message.author.id)], status)
+            elif len(self.monitoring_user) != 0:
+                toast_title = '%s %s' % (self.monitoring_user[str(message.author.id)], status)
             else:
                 toast_title = '%s %s' % (message.author.name, status)
             toast_text = message.content + attachment_str
@@ -133,11 +148,11 @@ class DiscordMonitor(discord.Client):
                 '%Y/%m/%d %H:%M:%S')
         else:
             t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-        log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s%s' % \
-                   (t, status, message.author.id,
+        log_text = '%s: ID: %d. Username: %s. Server: %s. Channel: %s. Content: %s%s' % \
+                   (status, message.author.id,
                     message.author.name + '#' + message.author.discriminator,
                     message.guild.name, message.channel.name, message.content, attachment_log)
-        add_log(log_text)
+        add_log(0, 'Discord', log_text)
         if len(attachment_str) > 0:
             attachment_push = '\n附件：' + attachment_str
         else:
@@ -152,9 +167,9 @@ class DiscordMonitor(discord.Client):
                          message.author.name + '#' + message.author.discriminator,
                          t,
                          timezone.zone)
-        elif len(self.monitoring_id) != 0:
+        elif len(self.monitoring_user) != 0:
             push_text = '【Discord %s %s】\n正文：%s%s\n频道：%s #%s\n时间：%s %s' % \
-                        (self.monitoring_id[str(message.author.id)],
+                        (self.monitoring_user[str(message.author.id)],
                          status,
                          message.content,
                          attachment_push,
@@ -187,17 +202,17 @@ class DiscordMonitor(discord.Client):
         :return:
         """
         if self.do_toast:
-            toast_title = '%s %s' % (self.monitoring_id[str(user.id)], status)
+            toast_title = '%s %s' % (self.monitoring_user[str(user.id)], status)
             toast_text = '变更后：%s' % after
             notification.notify(toast_title, toast_text, app_icon='icon.ico', app_name='Discord Monitor')
         t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-        log_text = '[INFO][%s][Discord][%s] ID: %d. Username: %s. Server: %s. Before: %s. After: %s.' % \
-                   (t, status, user.id,
+        log_text = '%s: ID: %d. Username: %s. Server: %s. Before: %s. After: %s.' % \
+                   (status, user.id,
                     user.name + '#' + user.discriminator,
                     user.guild.name, before, after)
-        add_log(log_text)
+        add_log(0, 'Discord', log_text)
         push_text = '【Discord %s %s】\n变更前：%s\n变更后：%s\n频道：%s\n时间：%s %s' % \
-                    (self.monitoring_id[str(user.id)],
+                    (self.monitoring_user[str(user.id)],
                      status,
                      before,
                      after,
@@ -208,83 +223,127 @@ class DiscordMonitor(discord.Client):
 
     async def on_connect(self):
         """
-        监听连接事件，每次连接会刷新所监视用户的用户名列表，使用非bot用户监视时会另外刷新昵称列表。并启动轮询监视。重写自discord.Client
+        监听连接事件，每次连接会刷新所监视用户的用户名列表，使用非bot用户监视时会另外刷新昵称列表。若使用频道名监听消息则获取频道名对应ID。并启动轮询监视。重写自discord.Client
 
         ***眼来了***
 
         :return:
         """
-        t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = 'Logged in as %s, ID: %d.' % (self.user.name + '#' + self.user.discriminator, self.user.id)
         print(log_text + '\n')
-        log_text = '[INFO][%s][Discord] %s' % (t, log_text)
-        add_log(log_text)
-        if not self.user_monitoring:
-            return
-        is_bot = self.user.bot
-        for uid in self.monitoring_id:
-            uid = int(uid)
-            user = None
+        add_log(0, 'Discord', log_text)
+        if self.user_monitoring:
+            is_bot = self.user.bot
+            for uid in self.monitoring_user:
+                uid = int(uid)
+                user = None
+                for guild in self.guilds:
+                    try:
+                        user = await guild.fetch_member(uid)
+                        if not is_bot:
+                            try:
+                                self.nick_dict[uid][guild.id] = user.nick
+                            except:
+                                self.nick_dict[uid] = {guild.id: user.nick}
+                    except:
+                        continue
+                if user:
+                    self.username_dict[uid] = [user.name, user.discriminator]
+                else:
+                    log_text = 'Fetch ID %s\'s username failed.' % uid
+                    add_log(2, 'Discord', log_text)
+        if self.monitoring_channel_by_name:
             for guild in self.guilds:
                 try:
-                    user = await guild.fetch_member(uid)
-                    if not is_bot:
-                        try:
-                            self.nick_dict[uid][guild.id] = user.nick
-                        except:
-                            self.nick_dict[uid] = {guild.id: user.nick}
-                except:
+                    channels = self.monitoring_channel_by_name[guild.name]
+                    for channel in guild.channels:
+                        if channel.name in channels:
+                            self.monitoring_channel.append(channel.id)
+                            try:
+                                self.monitoring_name2id[guild.name + '#' + channel.name].add(channel.id)
+                            except KeyError:
+                                self.monitoring_name2id[guild.name + '#' + channel.name] = set()
+                                self.monitoring_name2id[guild.name + '#' + channel.name].add(channel.id)
+                except KeyError:
                     continue
-            if user:
-                self.username_dict[uid] = [user.name, user.discriminator]
-            else:
-                t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-                log_text = '[ERROR][%s][Discord] Fetch ID %s\'s username failed.' % (t, uid)
-                add_log(log_text)
         self.connect_times += 1
-        if not is_bot and len(self.monitoring_id) != 0:
-            await self.watch_nick(self.connect_times)
+        if self.monitoring_channel_by_name or (not self.user.bot and self.user_monitoring):
+            await self.polling(self.connect_times)
 
-    async def watch_nick(self, times):
+    async def polling(self, times):
         """
-        轮询监视用户名变动，使用非bot用户监视时会另外监视昵称变动
+        轮询监视
 
         :param times: 连接次数，发生变动终止本次轮询，防止重复监视
         :return:
         """
         while times == self.connect_times:
             await asyncio.sleep(self.interval)
-            for uid in self.monitoring_id:
-                uid = int(uid)
-                user = None
-                for guild in self.guilds:
-                    try:
-                        user = await guild.fetch_member(uid)
+            if self.monitoring_channel_by_name:
+                self.watch_channel()
+            if not self.user.bot and self.user_monitoring:
+                await self.watch_nick()
+
+    def watch_channel(self):
+        """
+        监视频道名对应频道ID
+
+        :return:
+        """
+        for guild in self.guilds:
+            try:
+                channels = self.monitoring_channel_by_name[guild.name]
+                for channel in guild.channels:
+                    if channel.name in channels:
+                        k = guild.name + '#' + channel.name
                         try:
-                            self.nick_dict[uid][guild.id]
+                            if channel.id not in self.monitoring_name2id[k]:
+                                self.monitoring_channel.append(channel.id)
+                                self.monitoring_name2id[k].add(channel.id)
                         except KeyError:
-                            try:
-                                self.nick_dict[uid][guild.id] = user.nick
-                            except KeyError:
-                                self.nick_dict[uid] = {guild.id: user.nick}
-                            continue
-                        if self.nick_dict[uid][guild.id] != user.nick:
-                            await self.process_user_update(self.nick_dict[uid][guild.id], user.nick, user, '昵称更新')
-                            self.nick_dict[uid][guild.id] = user.nick
-                    except:
-                        continue
-                if user:
+                            self.monitoring_channel.append(channel.id)
+                            self.monitoring_name2id[k] = set()
+                            self.monitoring_name2id[k].add(channel.id)
+            except KeyError:
+                continue
+
+    async def watch_nick(self):
+        """
+        非bot用户轮询监视用户名变动及昵称变动
+
+        :return:
+        """
+        for uid in self.monitoring_user:
+            uid = int(uid)
+            user = None
+            for guild in self.guilds:
+                try:
+                    user = await guild.fetch_member(uid)
                     try:
-                        self.username_dict[uid]
+                        self.nick_dict[uid][guild.id]
                     except KeyError:
-                        self.username_dict[uid] = [user.name, user.discriminator]
+                        try:
+                            self.nick_dict[uid][guild.id] = user.nick
+                        except KeyError:
+                            self.nick_dict[uid] = {guild.id: user.nick}
                         continue
-                    if self.username_dict[uid][0] != user.name or self.username_dict[uid][1] != user.discriminator:
-                        before_screenname = self.username_dict[uid][0] + '#' + self.username_dict[uid][1]
-                        after_screenname = user.name + '#' + user.discriminator
-                        await self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
-                        self.username_dict[uid][0] = user.name
-                        self.username_dict[uid][1] = user.discriminator
+                    if self.nick_dict[uid][guild.id] != user.nick:
+                        await self.process_user_update(self.nick_dict[uid][guild.id], user.nick, user, '昵称更新')
+                        self.nick_dict[uid][guild.id] = user.nick
+                except:
+                    continue
+            if user:
+                try:
+                    self.username_dict[uid]
+                except KeyError:
+                    self.username_dict[uid] = [user.name, user.discriminator]
+                    continue
+                if self.username_dict[uid][0] != user.name or self.username_dict[uid][1] != user.discriminator:
+                    before_screenname = self.username_dict[uid][0] + '#' + self.username_dict[uid][1]
+                    after_screenname = user.name + '#' + user.discriminator
+                    await self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
+                    self.username_dict[uid][0] = user.name
+                    self.username_dict[uid][1] = user.discriminator
 
     async def on_disconnect(self):
         """
@@ -292,9 +351,8 @@ class DiscordMonitor(discord.Client):
 
         :return:
         """
-        t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-        log_text = '[WARN][%s][Discord] Disconnected...' % t
-        add_log(log_text)
+        log_text = 'Disconnected...'
+        add_log(1, 'Discord', log_text)
         print()
 
     async def on_message(self, message):
@@ -510,57 +568,61 @@ def push_thread(message, qq_id, id_type):
         except:
             if i == 4:
                 # 哦 5次全超时
-                t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-                log = '[ERROR][%s][Push] Timeout! Failed to send message to %s %d. Message: %s' % \
-                      (t, id_type, qq_id, data)
-                add_log(log)
+                log = 'Timeout! Failed to send message to %s %d. Message: %s' % \
+                      (id_type, qq_id, data)
+                add_log(0, 'PUSH', log)
                 break
             time.sleep(5)
             continue
         if response == 200:
             # cqhttp接受消息，但不知操作实际成功与否
-            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-            log = '[INFO][%s][Push] Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
-                  (t, id_type, qq_id, response, i, data)
-            add_log(log)
+            log = 'Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
+                  (id_type, qq_id, response, i, data)
+            add_log(0, 'PUSH', log)
             break
         if response == 401:
             # token needed
-            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Access token is not provided. ' \
-                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
-            add_log(log)
+            log = 'Failed to send message to %s %d. Reason: Access token is not provided. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
+            add_log(0, 'PUSH', log)
             break
         if response == 403:
             # token is wrong
-            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Access token is wrong. ' \
-                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
-            add_log(log)
+            log = 'Failed to send message to %s %d. Reason: Access token is wrong. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
+            add_log(0, 'PUSH', log)
             break
         if response == 404:
             # url is wrong
-            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-            log = '[INFO][%s][Push] Failed to send message to %s %d. Reason: Coolq URL is wrong. ' \
-                  'Response:%d. Retries:%d. Message: %s' % (t, id_type, qq_id, response, i, data)
-            add_log(log)
+            log = 'Failed to send message to %s %d. Reason: Coolq URL is wrong. ' \
+                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
+            add_log(0, 'PUSH', log)
             break
         elif i == 4:
             # 未超时但失败，还没出过这问题
-            t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
-            log = '[ERROR][%s][Push] Failed to send message to %s %d. Response:%d. Message: %s' % \
-                  (t, id_type, qq_id, response, data)
-            add_log(log)
+            log = 'Failed to send message to %s %d. Response:%d. Message: %s' % \
+                  (id_type, qq_id, response, data)
+            add_log(0, 'PUSH', log)
 
 
-def add_log(log_text):
+def add_log(log_type, method, text):
     """
-    Write log to file and print.
+    将log打印并存储至文件
 
-    :param log_text: Log text
+    :param log_type: 0: INFO, 1: WARN, 2: ERROR
+    :param method: 产生log的模块
+    :param text: log文本
     :return:
     """
-    log_text = log_text.replace('\n', '\\n')
+    log_type_dict = {0: 'INFO', 1: 'WARN', 2: 'ERROR'}
+    try:
+        log_type = log_type_dict[log_type]
+    except KeyError:
+        traceback.print_exc()
+        return
+    text = text.replace('\n', '\\n')
+    t = time.strftime('%Y/%m/%d %H:%M:%S')
+    log_text = '[%s][%s][%s] %s' % (log_type, t, method, text)
     print(log_text)
     with open(log_path, 'a', encoding='utf8') as log:
         log.write(log_text)
@@ -571,10 +633,12 @@ if __name__ == '__main__':
     intents = discord.Intents.all()
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, proxy=proxy, intents=intents)
+        dc = DiscordMonitor(user_id, channels, servers, toast,
+                            monitoring_channel_by_name=channel_by_name, query_interval=interval, proxy=proxy, intents=intents)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast, query_interval=interval, intents=intents)
+        dc = DiscordMonitor(user_id, channels, servers, toast,
+                            monitoring_channel_by_name=channel_by_name, query_interval=interval, intents=intents)
     try:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')

@@ -9,7 +9,8 @@
     "toast": true,
     "monitor": {
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
-        "channel": [1234567890],
+        "channel": [1234567890, 9876543210],
+        "channel_by_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"], ["Server 2 name", "Channel 4 name"]],
         "server": [1234567890]
     },
     "push": {

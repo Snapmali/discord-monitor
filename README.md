@@ -9,7 +9,7 @@
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
-* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道及用户ID指定被监测的频道及用户
+* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道名、频道ID、用户ID指定被监测的频道及用户
 * 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
 * Windows 10系统下可将动态推送至通知中心
 * 可将监测到的动态由[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
@@ -42,10 +42,10 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
     //上述Token是否属于Bot，是则为true，否则为false
     "is_bot": true, 
 
-    //go-cqhttp的URL，若在本机部署则默认为"http://localhost:5700"
+    //cqhttp应用的URL，若在本机部署则默认为"http://localhost:5700"
     "coolq_url": "http://localhost:5700", 
 
-    //go-cqhttp的access token，若未设置access token请留空（即"coolq_token": ""）
+    //cqhttp应用的access token，若未设置access token请留空（即"coolq_token": ""）
     "coolq_token": "Coolq-http-api access token, leave blank for no token",
     
     //网络代理的http地址，留空（即"proxy": ""）表示不设置代理
@@ -60,19 +60,25 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
     "monitor": {
 
         //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串。
-        //特别的，列表为空时表示监听频道中所有消息
+        //特别的，列表为空时表示监听频道中所有消息且不监听用户动态
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
         //"user_id": {},
         
-        //监听的频道列表，列表中值为频道ID，为整型数。特别的，列表为空时表示监听所有频道
-        //仅作用于消息动态监听，填0时表示不监听消息动态
+        //通过频道ID监听消息的频道列表，列表中值为频道ID，为整型数。特别的，列表为空时表示监听所有频道
+        //仅作用于消息动态监听，填0时表示不通过频道ID监听消息动态
         "channel": [1234567890],
         //"channel": [],
+
+        //通过频道名监听消息的频道列表，为嵌套列表。底层列表第一个值为Server名，其余值为频道名
+        //仅作用于消息动态监听，留空时表示不通过频道名监听消息动态
+        "channel_by_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"],
+                            ["Server 2 name", "Channel 4 name"]],
+        //"channel_by_name": []
 
         //监听的server列表，列表中值为服务器ID，为整型数。特别的，列表为空时表示监听所有Server
         //仅作用于用户动态监听，填0时表示不监听用户动态
         "server": [1234567890, 9876543210]
-        //"server: []"
+        //"server": []
     },
     "push": {
         //推送的QQ用户或群聊，为嵌套列表。底层列表第一个值为QQ号或群号；
