@@ -75,8 +75,6 @@ class DiscordMonitor(discord.Client):
         self.monitoring_channel_name = monitoring_channel_name
         if len(self.monitoring_channel_name) == 0:
             self.monitoring_channel_name = None
-        else:
-            self.monitoring_name2id = dict()
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
         self.username_dict = {}
@@ -94,11 +92,11 @@ class DiscordMonitor(discord.Client):
         if 0 in self.monitoring_server or len(self.monitoring_user) == 0:
             self.user_monitoring = False
 
-    def is_monitored_user(self, user, channel, server, member_update=False):
+    def is_monitored_object(self, user, channel, server, member_update=False):
         """
-        判断事件是否由指定Server、指定用户发出
+        判断事件是否由被检测对象发出
 
-        :param channel:
+        :param channel: 动态来源Channel
         :param member_update:是否为用户动态
         :param user:动态来源用户
         :param server:动态来源Server
@@ -110,13 +108,16 @@ class DiscordMonitor(discord.Client):
             if member_update:
                 return False
             # 消息动态
-            if channel in self.monitoring_channel or len(self.monitoring_channel) == 0:
+            if len(self.monitoring_channel) == 0 or channel.id in self.monitoring_channel or \
+                    (server.name in self.monitoring_channel_name and channel.name in self.monitoring_channel_name[server.name]):
                 return True
         # 用户动态
-        elif member_update and str(user.id) in self.monitoring_user and (server in self.monitoring_server or len(self.monitoring_server) == 0):
+        elif member_update and str(user.id) in self.monitoring_user and (server.id in self.monitoring_server or len(self.monitoring_server) == 0):
             return True
         # 消息动态
-        elif str(user.id) in self.monitoring_user and (channel in self.monitoring_channel or len(self.monitoring_channel) == 0):
+        elif str(user.id) in self.monitoring_user and \
+                (len(self.monitoring_channel) == 0 or channel.id in self.monitoring_channel or
+                 (server.name in self.monitoring_channel_name and channel.name in self.monitoring_channel_name[server.name])):
             return True
         return False
 
@@ -252,22 +253,8 @@ class DiscordMonitor(discord.Client):
                 else:
                     log_text = 'Fetch ID %s\'s username failed.' % uid
                     add_log(2, 'Discord', log_text)
-        if self.monitoring_channel_name:
-            for guild in self.guilds:
-                try:
-                    channels = self.monitoring_channel_name[guild.name]
-                    for channel in guild.channels:
-                        if channel.name in channels:
-                            self.monitoring_channel.append(channel.id)
-                            try:
-                                self.monitoring_name2id[guild.name + '#' + channel.name].add(channel.id)
-                            except KeyError:
-                                self.monitoring_name2id[guild.name + '#' + channel.name] = set()
-                                self.monitoring_name2id[guild.name + '#' + channel.name].add(channel.id)
-                except KeyError:
-                    continue
         self.connect_times += 1
-        if self.monitoring_channel_name or (not self.user.bot and self.user_monitoring):
+        if not self.user.bot and self.user_monitoring:
             await self.polling(self.connect_times)
 
     async def polling(self, times):
@@ -279,33 +266,8 @@ class DiscordMonitor(discord.Client):
         """
         while times == self.connect_times:
             await asyncio.sleep(self.interval)
-            if self.monitoring_channel_name:
-                self.watch_channel()
             if not self.user.bot and self.user_monitoring:
                 await self.watch_nick()
-
-    def watch_channel(self):
-        """
-        监视频道名对应频道ID
-
-        :return:
-        """
-        for guild in self.guilds:
-            try:
-                channels = self.monitoring_channel_name[guild.name]
-                for channel in guild.channels:
-                    if channel.name in channels:
-                        k = guild.name + '#' + channel.name
-                        try:
-                            if channel.id not in self.monitoring_name2id[k]:
-                                self.monitoring_channel.append(channel.id)
-                                self.monitoring_name2id[k].add(channel.id)
-                        except KeyError:
-                            self.monitoring_channel.append(channel.id)
-                            self.monitoring_name2id[k] = set()
-                            self.monitoring_name2id[k].add(channel.id)
-            except KeyError:
-                continue
 
     async def watch_nick(self):
         """
@@ -365,7 +327,7 @@ class DiscordMonitor(discord.Client):
         if not self.message_monitoring:
             return
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
-        if self.is_monitored_user(message.author, message.channel.id, None) and (message.content != '' or len(message.attachments) > 0):
+        if self.is_monitored_object(message.author, message.channel, message.guild) and (message.content != '' or len(message.attachments) > 0):
             await self.process_message(message, '发送消息')
 
     async def on_message_delete(self, message):
@@ -377,7 +339,7 @@ class DiscordMonitor(discord.Client):
         """
         if not self.message_monitoring:
             return
-        if self.is_monitored_user(message.author, message.channel.id, None):
+        if self.is_monitored_object(message.author, message.channel, message.guild):
             await self.process_message(message, '删除消息')
 
     async def on_message_edit(self, before, after):
@@ -390,7 +352,7 @@ class DiscordMonitor(discord.Client):
         """
         if not self.message_monitoring:
             return
-        if self.is_monitored_user(after.author, after.channel.id, None) and before.content != after.content:
+        if self.is_monitored_object(after.author, after.channel, after.guild) and before.content != after.content:
             await self.process_message(after, '编辑消息')
 
     async def on_guild_channel_pins_update(self, channel, last_pin):
@@ -403,7 +365,8 @@ class DiscordMonitor(discord.Client):
         """
         if not self.message_monitoring:
             return
-        if channel.id in self.monitoring_channel or len(self.monitoring_channel) == 0:
+        if channel.id in self.monitoring_channel or len(self.monitoring_channel) == 0 or \
+                (channel.guild.name in self.monitoring_channel_name and channel.name in self.monitoring_channel_name[channel.guild.name]):
             pins = await channel.pins()
             if len(pins) > 0:
                 await self.process_message(pins[0], '标注消息')
@@ -418,7 +381,7 @@ class DiscordMonitor(discord.Client):
         """
         if not self.user_monitoring:
             return
-        if self.is_monitored_user(before, None, before.guild.id, member_update=True):
+        if self.is_monitored_object(before, None, before.guild, member_update=True):
             # 昵称变更
             if before.nick != after.nick:
                 event = str(before.nick) + str(after.nick)
