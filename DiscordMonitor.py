@@ -66,15 +66,13 @@ while True:
 
 class DiscordMonitor(discord.Client):
 
-    def __init__(self, monitoring_user, monitoring_channel, monitoring_server, do_toast,
-                 monitoring_channel_name=None, query_interval=60, **kwargs):
+    def __init__(self, monitoring_user, monitoring_channel, monitoring_channel_name, monitoring_server, do_toast,
+                 query_interval=60, **kwargs):
         discord.Client.__init__(self, **kwargs)
         self.monitoring_user = monitoring_user
         self.monitoring_channel = monitoring_channel
         self.monitoring_server = monitoring_server
         self.monitoring_channel_name = monitoring_channel_name
-        if len(self.monitoring_channel_name) == 0:
-            self.monitoring_channel_name = None
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
         self.username_dict = {}
@@ -596,12 +594,12 @@ if __name__ == '__main__':
     intents = discord.Intents.all()
     if proxy != '':
         # 云插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast,
-                            monitoring_channel_name=channel_name, query_interval=interval, proxy=proxy, intents=intents)
+        dc = DiscordMonitor(user_id, channels, channel_name, servers, toast,
+                            query_interval=interval, proxy=proxy, intents=intents)
     else:
         # 直接插眼
-        dc = DiscordMonitor(user_id, channels, servers, toast,
-                            monitoring_channel_name=channel_name, query_interval=interval, intents=intents)
+        dc = DiscordMonitor(user_id, channels, channel_name, servers, toast,
+                            query_interval=interval, intents=intents)
     try:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')
