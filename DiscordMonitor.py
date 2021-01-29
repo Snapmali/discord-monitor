@@ -136,7 +136,10 @@ class DiscordMonitor(discord.Client):
                 toast_title = '%s %s' % (self.monitoring_user[str(message.author.id)], status)
             else:
                 toast_title = '%s %s' % (message.author.name, status)
-            toast_text = message.content + attachment_str
+            if len(message.content) >= 250:
+                toast_text = message.content[:250] + "..."
+            else:
+                toast_text = message.content
             notification.notify(toast_title, toast_text, app_icon='icon.ico', app_name='Discord Monitor')
         if len(attachment_str) > 0:
             attachment_log = '. Attachment: ' + attachment_str
@@ -203,7 +206,7 @@ class DiscordMonitor(discord.Client):
         if self.do_toast:
             toast_title = '%s %s' % (self.monitoring_user[str(user.id)], status)
             toast_text = '变更后：%s' % after
-            notification.notify(toast_title, toast_text, app_icon='icon.ico', app_name='Discord Monitor')
+            notification.notify(toast_title, toast_text[:250], app_icon='icon.ico', app_name='Discord Monitor')
         t = datetime.datetime.now(tz=timezone).strftime('%Y/%m/%d %H:%M:%S')
         log_text = '%s: ID: %d. Username: %s. Server: %s. Before: %s. After: %s.' % \
                    (status, user.id,
@@ -219,6 +222,35 @@ class DiscordMonitor(discord.Client):
                      t,
                      timezone.zone)
         push_message(push_text, 2)
+
+    async def on_ready(self, *args, **kwargs):
+        """
+        完全准备好时触发，暂时用于处理大型服务器中无法接收消息的问题，随时可能被依赖库修复
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        for guild in self.guilds:
+            payload = {
+                "op": 14,
+                "d": {
+                    "guild_id": str(guild.id),
+                    "typing": True,
+                    "threads": False,
+                    "activities": True,
+                    "members": [],
+                    "channels": {
+                        str(guild.channels[0].id): [
+                            [
+                                0,
+                                99
+                            ]
+                        ]
+                    }
+                }
+            }
+
+            asyncio.ensure_future(self.ws.send_as_json(payload), loop=self.loop)
 
     async def on_connect(self):
         """
