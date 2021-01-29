@@ -38,7 +38,7 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
 
 #### config.json 格式说明
 
-```json
+```json5
 {
     //Discord用户或Bot的Token字段（你插的眼）
     "token": "User Token or Bot Token", 
