@@ -7,14 +7,22 @@
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080",
     "interval": 60,
     "toast": true,
-    "monitor": {
+    "message_monitor": {
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
         "channel": [1234567890, 9876543210],
-        "channel_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"], ["Server 2 name", "Channel 4 name"]],
+        "channel_name": [["Server 1 name", "Channel 1 name", "Channel 2 name", "Channel 3 name"], ["Server 2 name", "Channel 4 name"]]
+    },
+    "user_dynamic_monitor": {
+        "user_id": {"User ID": "Display name", "987654321": "Sophia Smith"},
         "server": [1234567890]
     },
     "push": {
         "QQ_group": [[1234567890, true, false], [9876543210, true, true]],
         "QQ_user": [[1234567890, true, false], [9876543210, true, true]]
+    },
+    "push_text": {
+        "message_format": "【Discord <user_display_name> <type>】\n正文：<content>\n附件：<attachment>\n频道：<server_name> #<channel_name>\n时间：<time> <timezone>",
+        "user_dynamic_format": "【Discord <user_display_name> <type>】\n变更前：<before>\n变更后：<after>\n服务器：<server_name>\n时间：<time> <timezone>",
+        "replace": {"Pattern 1": "Replace 1", "Pattern 2":  "Replace 2"}
     }
 }
