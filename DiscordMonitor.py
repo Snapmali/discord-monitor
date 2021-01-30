@@ -508,8 +508,8 @@ if __name__ == '__main__':
             config_path_temp = input('请输入配置文件路径，空输入则为默认(默认为config.json):\n')
             if config_path_temp != '':
                 config_path = config_path_temp
-                config = read_config(config_path)
-                break
+            config = read_config(config_path)
+            break
         except FileNotFoundError:
             print('配置文件不存在')
         except Exception:
