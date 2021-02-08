@@ -4,7 +4,7 @@ from typing import Dict, Pattern
 
 class PushTextProcessor(object):
 
-    def __init__(self, message_format, user_dynamic_format, replace_dict):
+    def __init__(self, message_format, user_dynamic_format, replace_dict, content_cat_dict):
         self.keyword2num = {"type": 1,
                             "user_id": 2,
                             "user_name": 3,
@@ -19,7 +19,8 @@ class PushTextProcessor(object):
                             "after": 12,
                             "time": 13,
                             "timezone": 14,
-                            "content": 15}
+                            "content": 15,
+                            "content_cat": 16}
         self.num2keyword = {1: "type",
                             2: "user_id",
                             3: "user_name",
@@ -34,10 +35,12 @@ class PushTextProcessor(object):
                             12: "after",
                             13: "time",
                             14: "timezone",
-                            15: "content"}
+                            15: "content",
+                            16: "content_cat"}
         self.message_blocks = self.format_preprocess(message_format)
         self.user_dynamic_blocks = self.format_preprocess(user_dynamic_format)
-        self.pattern_dict = self.pattern_dict_preprocess(replace_dict)
+        self.replace_dict = self.pattern_dict_preprocess(replace_dict)
+        self.content_cat_dict = self.pattern_dict_preprocess(content_cat_dict)
 
     def format_preprocess(self, message_format: str):
         """
@@ -87,18 +90,32 @@ class PushTextProcessor(object):
             blocks.append(message_format[block_begin:])
         return blocks
 
-    def pattern_dict_preprocess(self, replace_dict: Dict[str, str]) -> Dict[Pattern, str]:
+    def pattern_dict_preprocess(self, pattern_dict: Dict[str, str]) -> Dict[Pattern, str]:
         """
         预处理用户自定义的用于替换discord消息正文的正则表达式
 
-        :param replace_dict: config中用户自定义正则表达式字典
+        :param pattern_dict: config中用户自定义正则表达式字典
         :return:
         """
-        pattern_dict = dict()
-        for k in replace_dict:
+        pattern_dict_compiled = dict()
+        for k in pattern_dict:
             pattern = re.compile(k)
-            pattern_dict[pattern] = replace_dict[k]
-        return pattern_dict
+            pattern_dict_compiled[pattern] = pattern_dict[k]
+        return pattern_dict_compiled
+
+    def get_content_cat(self, content: str):
+        """
+        匹配消息动态正文类别
+
+        :param content: 消息正文
+        :return:
+        """
+        if len(self.content_cat_dict) == 0:
+            return ""
+        for pattern in self.content_cat_dict:
+            if re.search(pattern, content):
+                return self.content_cat_dict[pattern]
+        return None
 
     def sub(self, content: str):
         """
@@ -107,8 +124,8 @@ class PushTextProcessor(object):
         :param content: discord消息正文
         :return:
         """
-        for pattern in self.pattern_dict:
-            content = re.sub(pattern, self.pattern_dict[pattern], content)
+        for pattern in self.replace_dict:
+            content = re.sub(pattern, self.replace_dict[pattern], content)
         return content
 
     def push_text_process(self, keywords: Dict[str, str], user_dynamic=True):

@@ -97,6 +97,9 @@ class DiscordMonitor(discord.Client):
         :param status: 消息动态
         :return:
         """
+        content_cat = self.push_text_processor.get_content_cat(message.content)
+        if not content_cat and content_cat != "":
+            return
         attachment_urls = [attachment.url for attachment in message.attachments]
         attachment_str = '; '.join(attachment_urls)
         content = self.push_text_processor.sub(message.content)
@@ -135,6 +138,7 @@ class DiscordMonitor(discord.Client):
                     "server_id": str(message.guild.id),
                     "server_name": message.guild.name,
                     "content": content,
+                    "content_cat": content_cat,
                     "attachment": attachment_str,
                     "time": t,
                     "timezone": timezone.zone}
@@ -184,31 +188,32 @@ class DiscordMonitor(discord.Client):
     async def on_ready(self, *args, **kwargs):
         """
         完全准备好时触发，暂时用于处理大型服务器中无法接收消息的问题，随时可能被依赖库修复
+
         :param args:
         :param kwargs:
         :return:
         """
-        for guild in self.guilds:
-            payload = {
-                "op": 14,
-                "d": {
-                    "guild_id": str(guild.id),
-                    "typing": True,
-                    "threads": False,
-                    "activities": True,
-                    "members": [],
-                    "channels": {
-                        str(guild.channels[0].id): [
-                            [
-                                0,
-                                99
+        if not self.user.bot:
+            for guild in self.guilds:
+                payload = {
+                    "op": 14,
+                    "d": {
+                        "guild_id": str(guild.id),
+                        "typing": True,
+                        "threads": False,
+                        "activities": True,
+                        "members": [],
+                        "channels": {
+                            str(guild.channels[0].id): [
+                                [
+                                    0,
+                                    99
+                                ]
                             ]
-                        ]
+                        }
                     }
                 }
-            }
-
-            asyncio.ensure_future(self.ws.send_as_json(payload), loop=self.loop)
+                asyncio.ensure_future(self.ws.send_as_json(payload), loop=self.loop)
 
     async def on_connect(self):
         """
@@ -495,6 +500,7 @@ def read_config(config_file):
                 except KeyError:
                     config_out["message_channel_name"][guild_[0]] = set()
                     config_out["message_channel_name"][guild_[0]].add(guild_[i])
+        config_out["content_cat_dict"] = config_json["push_text"]["category"]
         config_out["message_format"] = config_json["push_text"]["message_format"]
         config_out["user_dynamic_format"] = config_json["push_text"]["user_dynamic_format"]
         config_out["replace"] = config_json["push_text"]["replace"]
@@ -518,7 +524,7 @@ if __name__ == '__main__':
                 os.system('pause')
             sys.exit(1)
     push = QQPush(config["qq_user"], config["qq_group"], config["cqhttp_url"], config["cqhttp_token"])
-    push_processor = PushTextProcessor(config["message_format"], config["user_dynamic_format"], config["replace"])
+    push_processor = PushTextProcessor(config["message_format"], config["user_dynamic_format"], config["replace"], config["content_cat_dict"])
     intents = discord.Intents.all()
     if config["proxy"] != '':
         # 云插眼

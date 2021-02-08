@@ -2,16 +2,16 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/Snapmali/discord-monitor?include_prereleases)](https://github.com/Snapmali/discord-monitor/releases)
 [![GitHub](https://img.shields.io/github/license/snapmali/discord-monitor)](https://github.com/Snapmali/discord-monitor/blob/master/LICENSE)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSnapmali%2Fdiscord-monitor?ref=badge_shield)
 
 ## 功能介绍
 
 
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
-* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道名、频道ID、用户ID指定被监测的频道及用户
+* 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道名、频道ID、用户ID指定被监测的频道及用户。
 * 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
-* Windows 10系统下可将动态推送至通知中心
+* Windows 10系统下可将动态推送至通知中心。
+* 可分别自定义消息动态与用户动态推送消息格式。其中对消息动态可通过关键词进行类别匹配与字符替换，支持正则表达式。
 * 可将监测到的动态由[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
@@ -65,6 +65,7 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
     "message_monitor": {
 
         //监听的用户列表，其中key为用户ID，为字符串；value为在推送中显示的名称，为字符串。
+        //value将体现在<user_display_name>关键词中。
         //列表为空时表示监听被监听频道中的所有消息。
         "user_id": {"User ID": "Display name", "123456789": "John Smith"},
         //"user_id": {},
@@ -107,7 +108,7 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
         //"QQ_user": []
     },
 
-    //推送文本格式自定义
+    //推送文本格式自定义，此部分建议参阅下文“推送文本自定义”部分
     "push_text": {
 
         //自定义消息动态推送格式，为字符串，格式见下文。
@@ -116,8 +117,15 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
         //自定义用户动态推送格式，为字符串，格式见下文。
         "user_dynamic_format": "[Discord <user_display_name> <type>]\nBefore: <before>\nAfter: <after>\nServer: <server_name>\nTime: <time> <timezone>",
 
+        //自定义消息动态正文类别，若消息中出现匹配字符则将其视作指定类别的消息。
+        //key为匹配字符串，支持正则表达式，value为指定消息类别。
+        //value将体现在<content_cat>关键词中。不会替换原文字符。
+        //靠前的优先匹配。没有可匹配类别的消息将不进行推送。
+        //特别的，""可匹配所有消息，留空表示不进行类别匹配。
+        "category": {"Pattern 1": "Category 1", "As Long As You Love Me": "Music", "": "Others"},
+
         //自定义消息动态正文字词替换，可用于替换discord服务器自定义表情等。
-        //key为待替换字符串，支持正则表达式，value为替换字符串。
+        //key为待替换字符串，支持正则表达式，value为替换的字符串。
         //靠前的优先替换。
         //留空表示不进行字符串替换。
         "replace": {"Pattern 1": "Replace 1", "Pattern 2":  "Replace 2"}
@@ -129,7 +137,9 @@ QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mira
 
 用于监测的Bot（电子眼）的Token可在Discord Developer中查看，非Bot用户（肉眼）的Token需在浏览器的开发者工具中获得，具体方法可观看视频[How to get your Discord Token(Youtube)](https://youtu.be/tI1lzqzLQCs)，不算复杂。
 
-#### 推送文本自定义格式
+#### 推送文本自定义
+
+##### 1. 通过关键词自定义推送消息格式
 
 v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用户动态推送可分别设置格式。功能通过关键词替换方法实现，可用关键词如下：
 
@@ -145,6 +155,7 @@ v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用�
 |&lt;server_id&gt;|服务器ID|消息动态，用户动态|
 |&lt;server_name&gt;|服务器名|消息动态，用户动态|
 |&lt;content&gt;|discord消息正文|消息动态|
+|&lt;content_cat&gt;|discord消息正文类别，在config.json中自定义|消息动态|
 |&lt;attachment&gt;|discord消息附件链接，中间用"; "隔开，若无附件则为空("")|消息动态|
 |&lt;before&gt;|用户动态变化前的项|用户动态|
 |&lt;after&gt;|用户动态变化后的项|用户动态|
@@ -165,7 +176,11 @@ v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用�
 John aa <user_name> bb \John cc <typo>
 ```
 
-对于消息动态正文字词替换，仅作用于discord消息正文（即&lt;content&gt;部分），且替换正文中所有关键词，支持正则表达式，同时有先后顺序，靠前的优先替换。
+##### 2.消息动态正文类别匹配与字符替换 
+
+消息动态正文类别匹配仅作用于discord消息正文（即&lt;content&gt;部分），且不会替换原文字符。先于正文字词替换，不受替换影响，支持正则表达式，同时有先后顺序，靠前的优先匹配。无匹配类别的消息将不会被推送。`""`会匹配所有消息，可在最后用`"": "Others"`兜底未匹配类别的消息。
+
+对于消息动态正文字词替换，仅作用于discord消息正文（即&lt;content&gt;部分），且替换正文中所有关键词，支持正则表达式，同时有先后顺序，靠前的优先替换。常用`"<.*?>"`匹配服务器自定义表情(在推送消息中其格式为&lt;:Sadge:733427917308166177&gt;)。
 
 #### 监测账户相关注意事项
 

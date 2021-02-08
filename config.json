@@ -23,6 +23,7 @@
     "push_text": {
         "message_format": "【Discord <user_display_name> <type>】\n正文：<content>\n附件：<attachment>\n频道：<server_name> #<channel_name>\n时间：<time> <timezone>",
         "user_dynamic_format": "【Discord <user_display_name> <type>】\n变更前：<before>\n变更后：<after>\n服务器：<server_name>\n时间：<time> <timezone>",
+        "category": {"Pattern 1": "Category 1", "As Long As You Love Me": "Music", "": "Others"},
         "replace": {"Pattern 1": "Replace 1", "Pattern 2":  "Replace 2"}
     }
 }
