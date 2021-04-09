@@ -15,7 +15,7 @@
 * 可将监测到的动态由[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
-脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/) 1.7.1，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
+脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/) 1.7.0以上，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
 
 ## 食用方法
 
@@ -176,6 +176,8 @@ v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用�
 ```
 John aa <user_name> bb \John cc <typo>
 ```
+
+请注意，在QQ消息中显示discord消息图片功能需通过cqhttp应用连接至discord CDN服务器实现，**如有必要请在cqhttp应用的配置文件中添加代理设置。**
 
 ##### 2.消息动态正文类别匹配与字符替换 
 
