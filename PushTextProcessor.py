@@ -1,42 +1,19 @@
 import re
 from typing import Dict, Pattern
 
+keys = ["type", "user_id", "user_name", "user_discriminator", "user_display_name", "channel_id", "channel_name",
+        "server_id", "server_name", "attachment", "image", "before", "after", "time", "timezone", "content", "content_cat"]
+escape_character = {"&": "&amp;", "[": "&#91;", "]": "&#93;"}
+
 
 class PushTextProcessor(object):
 
     def __init__(self, message_format, user_dynamic_format, replace_dict, content_cat_dict):
-        self.keyword2num = {"type": 1,
-                            "user_id": 2,
-                            "user_name": 3,
-                            "user_discriminator": 4,
-                            "user_display_name": 5,
-                            "channel_id:": 6,
-                            "channel_name": 7,
-                            "server_id": 8,
-                            "server_name": 9,
-                            "attachment": 10,
-                            "before": 11,
-                            "after": 12,
-                            "time": 13,
-                            "timezone": 14,
-                            "content": 15,
-                            "content_cat": 16}
-        self.num2keyword = {1: "type",
-                            2: "user_id",
-                            3: "user_name",
-                            4: "user_discriminator",
-                            5: "user_display_name",
-                            6: "channel_id",
-                            7: "channel_name",
-                            8: "server_id",
-                            9: "server_name",
-                            10: "attachment",
-                            11: "before",
-                            12: "after",
-                            13: "time",
-                            14: "timezone",
-                            15: "content",
-                            16: "content_cat"}
+        self.keyword2num = dict()
+        self.num2keyword = dict()
+        for i in range(len(keys)):
+            self.keyword2num[keys[i]] = i
+            self.num2keyword[i] = keys[i]
         self.message_blocks = self.format_preprocess(message_format)
         self.user_dynamic_blocks = self.format_preprocess(user_dynamic_format)
         self.replace_dict = self.pattern_dict_preprocess(replace_dict)
@@ -128,23 +105,33 @@ class PushTextProcessor(object):
             content = re.sub(pattern, self.replace_dict[pattern], content)
         return content
 
-    def push_text_process(self, keywords: Dict[str, str], user_dynamic=True):
+    def push_text_process(self, keywords: Dict[str, str], is_user_dynamic: bool):
         """
         处理推送消息
 
         :param keywords: 消息中各信息的字典
-        :param user_dynamic: 是否为用户动态推送
+        :param is_user_dynamic: 是否为用户动态推送
         :return:
         """
-        if user_dynamic:
+        if is_user_dynamic:
             blocks = self.user_dynamic_blocks.copy()
         else:
             blocks = self.message_blocks.copy()
         for i in range(len(blocks)):
             block = blocks[i]
             if type(block) == int:
-                v = keywords[self.num2keyword[block]]
+                keyword = self.num2keyword[block]
+                v = keywords[keyword]
                 if not v:
                     v = "None"
                 blocks[i] = v
         return "".join(blocks)
+
+    def escape_cqcode(self, text: str):
+        escaped_text = ""
+        for c in text:
+            if c in escape_character:
+                escaped_text += escape_character[c]
+            else:
+                escaped_text += c
+        return escaped_text

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import asyncio
+import base64
 import datetime
 import discord
+import html
 import json
 import os
 import platform
-import re
-import requests
 import signal
 import sys
 import threading
@@ -26,6 +26,8 @@ from QQPush import QQPush
 log_path = 'discord_monitor.log'
 # Timezone
 timezone = tz('Asia/Shanghai')
+
+img_MIME = ["image/png", "image/jpeg", "image/gif"]
 
 lock = threading.Lock()
 
@@ -100,8 +102,19 @@ class DiscordMonitor(discord.Client):
         content_cat = self.push_text_processor.get_content_cat(message.content)
         if not content_cat and content_cat != "":
             return
-        attachment_urls = [attachment.url for attachment in message.attachments]
-        attachment_str = '; '.join(attachment_urls)
+        attachment_urls = list()
+        image_cqcodes = list()
+        print("processing")
+        for attachment in message.attachments:
+            attachment_urls.append(attachment.url)
+            if attachment.content_type in img_MIME:
+                # 尝试利用discord.py加载图片为base64，使用代理情况下会无法连接
+                #image = await attachment.read(use_cached=False)
+                #image_base64 = base64.b64encode(image).decode("utf8")
+                #image_cqcodes.append(f"[CQ:image,file=base64://{image_base64}==,timeout=5]")
+                image_cqcodes.append(f"[CQ:image,file={attachment.url},timeout=5]")
+        attachment_str = ' ; '.join(attachment_urls)
+        image_str = "".join(image_cqcodes)
         content = self.push_text_processor.sub(message.content)
         if self.do_toast:
             if status == '标注消息':
@@ -110,10 +123,10 @@ class DiscordMonitor(discord.Client):
                 toast_title = '%s %s' % (self.message_user[str(message.author.id)], status)
             else:
                 toast_title = '%s %s' % (message.author.name, status)
-            if len(content) >= 250:
-                toast_text = content[:250] + "..."
+            if len(content) >= 240:
+                toast_text = content[:240] + "..." if len(message.attachments) == 0 else content + "..." + "[附件]"
             else:
-                toast_text = content
+                toast_text = content if len(message.attachments) == 0 else content + "[附件]"
             notification.notify(toast_title, toast_text, app_icon='icon.ico', app_name='Discord Monitor')
         if len(attachment_str) > 0:
             attachment_log = '. Attachment: ' + attachment_str
@@ -137,16 +150,17 @@ class DiscordMonitor(discord.Client):
                     "channel_name": message.channel.name,
                     "server_id": str(message.guild.id),
                     "server_name": message.guild.name,
-                    "content": content,
+                    "content": self.push_text_processor.escape_cqcode(content),
                     "content_cat": content_cat,
                     "attachment": attachment_str,
+                    "image": image_str,
                     "time": t,
                     "timezone": timezone.zone}
         if len(self.message_user) != 0:
             keywords["user_display_name"] = self.message_user[str(message.author.id)]
         else:
             keywords["user_display_name"] = message.author.name + '#' + message.author.discriminator
-        push_text = self.push_text_processor.push_text_process(keywords, user_dynamic=False)
+        push_text = self.push_text_processor.push_text_process(keywords, is_user_dynamic=False)
         self.qq_push.push_message(push_text, 1)
 
     async def process_user_update(self, before, after, user: discord.Member, status):
@@ -182,7 +196,7 @@ class DiscordMonitor(discord.Client):
                     "after": after,
                     "time": t,
                     "timezone": timezone.zone}
-        push_text = self.push_text_processor.push_text_process(keywords, user_dynamic=True)
+        push_text = self.push_text_processor.push_text_process(keywords, is_user_dynamic=True)
         self.qq_push.push_message(push_text, 2)
 
     async def on_ready(self, *args, **kwargs):

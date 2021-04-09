@@ -42,7 +42,7 @@ class QQPush(object):
         :return:
         """
         # message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
-        data = {'message': message, 'auto_escape': True}
+        data = {'message': message, 'auto_escape': False}
         headers = {'Content-type': 'application/json'}
         url = '%s/send_msg' % self.coolq_url
 
@@ -60,7 +60,7 @@ class QQPush(object):
         # 5次重试
         for i in range(5):
             try:
-                response = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=(3, 10)).status_code
+                response = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=(10, 10)).status_code
             except:
                 if i == 4:
                     # 哦 5次全超时

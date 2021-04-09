@@ -15,13 +15,13 @@
 * 可将监测到的动态由[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
-脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
+脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/) 1.7.1，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
 
 ## 食用方法
 
 ### 环境依赖
 
-<b>[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，配置过config.json后在Windows下可直接运行，仅需再下载[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)即可。</b>
+**[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，配置过config.json后在Windows下可直接运行，仅需再下载[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)即可。**
 
 基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
@@ -157,6 +157,7 @@ v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用�
 |&lt;content&gt;|discord消息正文|消息动态|
 |&lt;content_cat&gt;|discord消息正文类别，在config.json中自定义|消息动态|
 |&lt;attachment&gt;|discord消息附件链接，中间用"; "隔开，若无附件则为空("")|消息动态|
+|&lt;image&gt;|discord消息图片，直接在QQ消息中显示|消息动态|
 |&lt;before&gt;|用户动态变化前的项|用户动态|
 |&lt;after&gt;|用户动态变化后的项|用户动态|
 |&lt;time&gt;|时间，默认格式为"2021/01/30 00:00:00"|消息动态，用户动态|
@@ -184,9 +185,9 @@ John aa <user_name> bb \John cc <typo>
 
 #### 监测账户相关注意事项
 
-<b>需要注意，通过用户Token使用本脚本可能违反Discord使用协议（请参阅[Automated user accounts (self-bots)](https://support.discord.com/hc/en-us/articles/115002192352)），并可能导致账号封停。有条件的话建议使用Bot，否则请谨慎使用或使用小号（义眼）。</b>
+**需要注意，通过用户Token使用本脚本可能违反Discord使用协议（请参阅[Automated user accounts (self-bots)](https://support.discord.com/hc/en-us/articles/115002192352)），并可能导致账号封停。有条件的话建议使用Bot，否则请谨慎使用或使用小号（义眼）。**
 
-<b>同时，通过非Bot用户监视时，利用事件监测用户动态方法失效，仅可通过定时查询api方法监测用户用户名及标签更新、Server内昵称更新，此时动态将不会及时推送，同时无法监测在线状态更新及游戏动态更新。</b>
+**同时，通过非Bot用户监视时，利用事件监测用户动态方法失效，仅可通过定时查询api方法监测用户用户名及标签更新、Server内昵称更新，此时动态将不会及时推送，同时无法监测在线状态更新及游戏动态更新。**
 
 另外对于bot用户，由于Discord会对bot请求用户动态以及server内用户列表进行限制，若需使用本脚本的用户动态监控，则需要在[Discord Application](https://discord.com/developers/applications)的Bot设置页中启用"PRESENCE INTENT"及"SERVER MEMBERS INTENT"。若不启用则用户动态监视功能失效，无其他影响。
 
