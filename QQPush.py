@@ -1,20 +1,25 @@
 import json
 import threading
 import time
-import requests
+import aiohttp
 
 from Log import add_log
+from Config import config
 
 
-class QQPush(object):
+class QQPush:
 
-    def __init__(self, qq_user, qq_group, coolq_url, coolq_token):
-        self.qq_user = qq_user
-        self.qq_group = qq_group
-        self.coolq_url = coolq_url
-        self.coolq_token = coolq_token
+    def __init__(self):
+        self.qq_user = config.push.users
+        self.qq_group = config.push.groups
+        self.coolq_url = config.cqhttp_url
+        self.coolq_token = config.cqhttp_token
+        self.session = aiohttp.ClientSession()
 
-    def push_message(self, message, permission):
+    async def close(self):
+        await self.session.close()
+
+    async def push_message(self, message, permission):
         """
         建立线程并将消息推送至coolq-http-api
 
@@ -24,21 +29,17 @@ class QQPush(object):
         """
         for group in self.qq_group:
             if group[permission]:
-                t = threading.Thread(args=(message, group[0], 'group'), target=self.push_thread)
-                t.setDaemon(True)
-                t.start()
+                await self._push(message, group[0], 'group')
         for user in self.qq_user:
             if user[permission]:
-                t = threading.Thread(args=(message, user[0], 'user'), target=self.push_thread)
-                t.setDaemon(True)
-                t.start()
+                await self._push(message, user[0], 'user')
 
-    def push_thread(self, message, qq_id, id_type):
+    async def _push(self, message, qq_id, id_type):
         """
         作为线程将消息推送至cqhttp
         :param message: message text
         :param qq_id: QQ user ID or group ID
-        :param id_type: 'group'表示群聊, 'user'私聊
+        :param id_type: "group"表示群聊, "user"私聊
         :return:
         """
         # message = pattern.sub(lambda m: rep[re.escape(m.group(0))], message)
@@ -60,7 +61,37 @@ class QQPush(object):
         # 5次重试
         for i in range(5):
             try:
-                response = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=(10, 10)).status_code
+                async with self.session.post(url, headers=headers, data=json.dumps(data), timeout=(10, 10)) as response:
+                    if response is not None:
+                        if response.status == 200:
+                            # cqhttp接受消息，但不知操作实际成功与否
+                            log = 'Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
+                                  (id_type, qq_id, response.status, i, data)
+                            add_log(0, 'PUSH', log)
+                            break
+                        if response.status == 401:
+                            # token needed
+                            log = 'Failed to send message to %s %d. Reason: Access token is not provided. ' \
+                                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response.status, i, data)
+                            add_log(0, 'PUSH', log)
+                            break
+                        if response.status == 403:
+                            # token is wrong
+                            log = 'Failed to send message to %s %d. Reason: Access token is wrong. ' \
+                                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response.status, i, data)
+                            add_log(0, 'PUSH', log)
+                            break
+                        if response.status == 404:
+                            # url is wrong
+                            log = 'Failed to send message to %s %d. Reason: Coolq URL is wrong. ' \
+                                  'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response.status, i, data)
+                            add_log(0, 'PUSH', log)
+                            break
+                    if i == 4:
+                        # 未超时但失败，还没出过这问题
+                        log = 'Failed to send message to %s %d. Response:%d. Message: %s' % \
+                              (id_type, qq_id, response.status, data)
+                        add_log(0, 'PUSH', log)
             except:
                 if i == 4:
                     # 哦 5次全超时
@@ -70,33 +101,4 @@ class QQPush(object):
                     break
                 time.sleep(5)
                 continue
-            if response == 200:
-                # cqhttp接受消息，但不知操作实际成功与否
-                log = 'Message to %s %d is sent. Response:%d. Retries:%d. Message: %s' % \
-                      (id_type, qq_id, response, i, data)
-                add_log(0, 'PUSH', log)
-                break
-            if response == 401:
-                # token needed
-                log = 'Failed to send message to %s %d. Reason: Access token is not provided. ' \
-                      'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
-                add_log(0, 'PUSH', log)
-                break
-            if response == 403:
-                # token is wrong
-                log = 'Failed to send message to %s %d. Reason: Access token is wrong. ' \
-                      'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
-                add_log(0, 'PUSH', log)
-                break
-            if response == 404:
-                # url is wrong
-                log = 'Failed to send message to %s %d. Reason: Coolq URL is wrong. ' \
-                      'Response:%d. Retries:%d. Message: %s' % (id_type, qq_id, response, i, data)
-                add_log(0, 'PUSH', log)
-                break
-            elif i == 4:
-                # 未超时但失败，还没出过这问题
-                log = 'Failed to send message to %s %d. Response:%d. Message: %s' % \
-                      (id_type, qq_id, response, data)
-                add_log(0, 'PUSH', log)
 

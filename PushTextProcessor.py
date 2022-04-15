@@ -1,23 +1,25 @@
 import re
 from typing import Dict, Pattern
 
+from Config import push_content
+
 keys = ["type", "user_id", "user_name", "user_discriminator", "user_display_name", "channel_id", "channel_name",
         "server_id", "server_name", "attachment", "image", "before", "after", "time", "timezone", "content", "content_cat"]
 escape_character = {"&": "&amp;", "[": "&#91;", "]": "&#93;"}
 
 
-class PushTextProcessor(object):
+class PushTextProcessor:
 
-    def __init__(self, message_format, user_dynamic_format, replace_dict, content_cat_dict):
+    def __init__(self):
         self.keyword2num = dict()
         self.num2keyword = dict()
         for i in range(len(keys)):
             self.keyword2num[keys[i]] = i
             self.num2keyword[i] = keys[i]
-        self.message_blocks = self.format_preprocess(message_format)
-        self.user_dynamic_blocks = self.format_preprocess(user_dynamic_format)
-        self.replace_dict = self.pattern_dict_preprocess(replace_dict)
-        self.content_cat_dict = self.pattern_dict_preprocess(content_cat_dict)
+        self.message_blocks = self.format_preprocess(push_content.message_format)
+        self.user_dynamic_blocks = self.format_preprocess(push_content.user_dynamic_format)
+        self.replace_dict = self.pattern_dict_preprocess(push_content.replace)
+        self.content_cat_dict = self.pattern_dict_preprocess(push_content.categories)
 
     def format_preprocess(self, message_format: str):
         """
