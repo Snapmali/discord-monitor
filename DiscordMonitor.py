@@ -6,11 +6,11 @@ import os
 import platform
 import traceback
 
+import discord
 from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from plyer import notification
 from pytz import timezone as tz
 
-import discord_bot as discord
 from Config import config
 from Log import add_log
 from PushTextProcessor import PushTextProcessor
