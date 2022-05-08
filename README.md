@@ -34,6 +34,7 @@
 由于二者包名相同，建议仅下载所需的库并与本脚本放置于同一目录下运行，或使用虚拟环境。
 
 2022.5.8：discord.py-self仅声明兼容aiohttp<3.8.0,>=3.6.0，**因此pip安装discord.py-self时会自动卸载aiohttp 3.8.0及以上版本**，请务必注意。
+
 若需要同时使用discord.py-self及代理，则aiohttp版本需要为3.8.0以上，请在安装完discord.py-self后强制升级aiohttp，pip会报兼容性问题，但脚本实际运行时并未发现错误。
 
 ```shell
@@ -56,7 +57,7 @@ QQ推送依赖cqhttp应用实现。其中[go-cqhttp](https://github.com/Mrs4s/go
 
 ### 脚本运行
 
-将`DiscordMonitor.py`和`config.json`放入同一文件夹下。运行前需要自定义`config.json`文件。
+运行前需要自定义`config.json`文件。
 
 配置文件修改完毕后，在命令行中运行`python DiscordMonitor.py`即可。推送消息中默认时区为东八区。
 
