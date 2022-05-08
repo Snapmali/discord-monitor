@@ -1,10 +1,11 @@
 import json
-import threading
 import time
+import traceback
+
 import aiohttp
 
-from Log import add_log
 from Config import config
+from Log import add_log
 
 
 class QQPush:
@@ -21,7 +22,7 @@ class QQPush:
 
     async def push_message(self, message, permission):
         """
-        建立线程并将消息推送至coolq-http-api
+        将消息按配置文件推送至QQ私聊或群聊
 
         :param message: message text
         :param permission: 1表示消息动态，2表示用户动态
@@ -36,7 +37,7 @@ class QQPush:
 
     async def _push(self, message, qq_id, id_type):
         """
-        作为线程将消息推送至cqhttp
+        将消息推送至cqhttp
         :param message: message text
         :param qq_id: QQ user ID or group ID
         :param id_type: "group"表示群聊, "user"私聊
@@ -61,7 +62,7 @@ class QQPush:
         # 5次重试
         for i in range(5):
             try:
-                async with self.session.post(url, headers=headers, data=json.dumps(data), timeout=(10, 10)) as response:
+                async with self.session.post(url, headers=headers, data=json.dumps(data), timeout=10) as response:
                     if response is not None:
                         if response.status == 200:
                             # cqhttp接受消息，但不知操作实际成功与否
@@ -93,6 +94,7 @@ class QQPush:
                               (id_type, qq_id, response.status, data)
                         add_log(0, 'PUSH', log)
             except:
+                traceback.print_exc()
                 if i == 4:
                     # 哦 5次全超时
                     log = 'Timeout! Failed to send message to %s %d. Message: %s' % \

@@ -4,14 +4,13 @@ import asyncio
 import datetime
 import os
 import platform
-import signal
 import traceback
 
-import discord
 from aiohttp import ClientConnectorError, ClientProxyConnectionError
 from plyer import notification
 from pytz import timezone as tz
 
+import discord_bot as discord
 from Config import config
 from Log import add_log
 from PushTextProcessor import PushTextProcessor
@@ -98,7 +97,6 @@ class DiscordMonitor(discord.Client):
             return
         attachment_urls = list()
         image_cqcodes = list()
-        print("processing")
         for attachment in message.attachments:
             attachment_urls.append(attachment.url)
             if attachment.content_type in img_MIME:
@@ -255,11 +253,11 @@ class DiscordMonitor(discord.Client):
                 if user:
                     self.username_dict[uid] = [user.name, user.discriminator]
                 else:
-                    log_text = 'Fetch ID %s\'s username failed.' % uid
+                    log_text = 'Fetching ID %s\'s username failed.' % uid
                     add_log(2, 'Discord', log_text)
         self.connect_times += 1
         if not self.user.bot and self.user_monitoring:
-            await self.polling(self.connect_times)
+            asyncio.create_task(self.polling(self.connect_times))
 
     async def polling(self, times):
         """
@@ -331,7 +329,6 @@ class DiscordMonitor(discord.Client):
         """
         if not self.message_monitoring:
             return
-        print(message.content)
         # 消息标注事件亦会被捕获，同时其content及attachments为空，需特判排除
         if self.is_monitored_object(message.author, message.channel, message.guild) and (message.content != '' or len(message.attachments) > 0):
             await self.process_message(message, '发送消息')
@@ -478,27 +475,41 @@ class DiscordMonitor(discord.Client):
         await asyncio.sleep(5)
         self.event_set.remove(event)
 
-    def close_qq_session(self):
-        self.qq_push.close()
+    async def close_qq_session(self):
+        await self.qq_push.close()
 
 
-if __name__ == '__main__':
-    intents = discord.Intents.default()
-    dc = DiscordMonitor(intents=intents)
+def main():
+    loop = asyncio.get_event_loop()
+    if config.bot:
+        intents = discord.Intents.default()
+        dc = DiscordMonitor(loop=loop, intents=intents)
+    else:
+        dc = DiscordMonitor(loop=loop)
     try:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
         print('Logging in...')
-        dc.run(config["token"], bot=config.bot)
-        dc.close_qq_session()
+        loop.run_until_complete(dc.start(config.token))
     except ClientProxyConnectionError:
         print('代理错误，请检查代理设置')
     except (TimeoutError, ClientConnectorError):
         print('连接超时，请检查连接状态及代理设置')
     except discord.errors.LoginFailure:
         print('登录失败，请检查Token及bot设置是否正确，或更新Token')
+    except KeyboardInterrupt:
+        print("用户退出")
     except Exception:
         print('登录失败，请检查配置文件中各参数是否正确')
         traceback.print_exc()
+    finally:
+        loop.run_until_complete(asyncio.gather(dc.close_qq_session(), dc.close()))
+        # 2022.5.8：
+        # Windows环境下aiohttp似乎会在程序退出释放内存时自动调用方法关闭事件循环导致报错，在此对平台进行特判
+        # 暂未测试在Linux下的表现
+        if platform.system() != 'Windows':
+            loop.close()
 
+
+if __name__ == '__main__':
+    main()
     if platform.system() == 'Windows':
         os.system('pause')

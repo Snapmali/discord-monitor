@@ -5,17 +5,16 @@
 
 ## 功能介绍
 
-
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道名、频道ID、用户ID指定被监测的频道及用户。
 * 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
 * Windows 10系统下可将动态推送至通知中心。
 * 可分别自定义消息动态与用户动态推送消息格式。其中对消息动态可通过关键词进行类别匹配与字符替换，支持正则表达式。
-* 可将监测到的动态由[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
+* 可将监测到的动态由[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
 * 可在配置文件中设置各QQ用户或群聊是否接受消息动态及用户动态推送
 
-脚本的实现基于[discord.py库](https://pypi.org/project/discord.py/) 1.7.0以上，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
+脚本的实现基于[discord.py](https://pypi.org/project/discord.py/)，[discord.py-self](https://github.com/dolfies/discord.py-self)，QQ推送部分代码参考了[lovezzzxxx](https://github.com/lovezzzxxx)大佬的[livemonitor](https://github.com/lovezzzxxx/livemonitor)脚本，在此感谢。
 
 ## 食用方法
 
@@ -23,12 +22,37 @@
 
 **[Release](https://github.com/Snapmali/discord-monitor/releases)中发布了exe版本，配置过config.json后在Windows下可直接运行，仅需再下载[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)即可。**
 
-基于python3.7版本编写，python3.8版本可正常运行，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
+基于python3.8版本编写，其他版本未测试。3.4及以下版本应无法运行。同时在Ubuntu 16.04上可正常运行。
 
-外部依赖库：requests, discord.py, plyer, pytz。可分别在命令行中执行`pip install requests` `pip install discord.py` `pip install plyer` `pip install pytz`进行安装。
+#### 外部依赖库
 
-QQ推送部分依赖[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)、[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等应用实现。其中go-cqhttp的部署较为简单，在其[release](https://github.com/Mrs4s/go-cqhttp/releases)中下载系统对应版本后运行即可，具体使用方法请参阅其文档。
+##### discord.py相关
 
+* 若使用Bot进行监视，可正常使用[discord.py](https://pypi.org/project/discord.py/) 1.7.0以上版本。
+* 若使用用户（非Bot）进行监视，需使用其分支[discord.py-self](https://github.com/dolfies/discord.py-self)，具体原因可见[此issue](https://github.com/Snapmali/discord-monitor/issues/10)。
+
+由于二者包名相同，建议仅下载所需的库并与本脚本放置于同一目录下运行，或使用虚拟环境。
+
+2022.5.8：discord.py-self仅声明兼容aiohttp<3.8.0,>=3.6.0，**因此pip安装discord.py-self时会自动卸载aiohttp 3.8.0及以上版本**，请务必注意。
+若需要同时使用discord.py-self及代理，则aiohttp版本需要为3.8.0以上，请在安装完discord.py-self后强制升级aiohttp，pip会报兼容性问题，但脚本实际运行时并未发现错误。
+
+```shell
+# discord.py
+pip install -U discord.py
+
+# discord.py-self
+pip install -U discord.py-self
+# 强制升级aiohttp至3.8.0以上
+pip install -U aiohttp
+```
+
+##### 其他依赖库
+
+```shell
+pip install -U aiohttp plyer datetime pytz
+```
+
+QQ推送依赖cqhttp应用实现。其中[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)的部署较为简单，在其[release](https://github.com/Mrs4s/go-cqhttp/releases)中下载系统对应版本后运行即可，具体使用方法请参阅其文档。
 
 ### 脚本运行
 
@@ -173,13 +197,13 @@ v0.8.0版本后允许自定义推送消息文本，且消息动态推送与用�
 
 输出格式为：
 
-```
+```plain
 John aa <user_name> bb \John cc <typo>
 ```
 
 请注意，在QQ消息中显示discord消息图片功能需通过cqhttp应用连接至discord CDN服务器实现，**如有必要请在cqhttp应用的配置文件中添加代理设置。**
 
-##### 2.消息动态正文类别匹配与字符替换 
+##### 2.消息动态正文类别匹配与字符替换
 
 消息动态正文类别匹配仅作用于discord消息正文（即&lt;content&gt;部分），且不会替换原文字符。先于正文字词替换，不受替换影响，支持正则表达式，同时有先后顺序，靠前的优先匹配。无匹配类别的消息将不会被推送。`""`会匹配所有消息，可在最后用`"": "Others"`兜底未匹配类别的消息。
 
@@ -193,24 +217,23 @@ John aa <user_name> bb \John cc <typo>
 
 另外对于bot用户，由于Discord会对bot请求用户动态以及server内用户列表进行限制，若需使用本脚本的用户动态监控，则需要在[Discord Application](https://discord.com/developers/applications)的Bot设置页中启用"PRESENCE INTENT"及"SERVER MEMBERS INTENT"。若不启用则用户动态监视功能失效，无其他影响。
 
-
 ## 已知问题
 
-#### 私聊推送失效
+### 私聊推送失效
 
 利用cqhttp应用向私聊中推送消息时，需要双方互为好友且对方已向己方发送过消息才可向对方发送消息。
 
-#### 编辑消息及删除消息监视失灵
+### 编辑消息及删除消息监视失灵
 
 目前仅可捕获脚本启动后发送的最新的1000条消息的编辑及删除事件，启动前以及在启动后最新的1000条以外的消息暂时不能获知其编辑或删除。
 
-#### 无征兆断连
+### 无征兆断连
 
 若脚本出现断连且再未提示Logged in，但discord发送消息时脚本可正常反应，可能是由于未知原因脚本未捕获connect事件，实际对脚本运行无影响。
 
-**↓此问题可能已修复**
+### 非Bot监视时推送消息中无消息正文
 
-如果在中国大陆运行脚本并使用代理，出现无法登录，或多次断连后脚本再无动态，且discord发送消息脚本也无反应的问题，可能是由于依赖库discord.py使用的Websockets库不支持代理连接，导致脚本配置的代理无法被正确使用，可参阅[#4204 Switching Websockets library to support proxy scenarios](https://github.com/Rapptz/discord.py/issues/4204)。实际上断连问题是否出现以及出现频率会受网络运营商、线路、地区等因素影响。暂无较完美的解决方案，可尝试在Windows端使用proxifier、或在Linux端使用netns，以避免在直接脚本中使用代理，从而绕开此问题，实际效果较为良好。
+非Bot监视请使用discord.py-self依赖库。详情参见[用户bot (user-bot / self-bot) 无法获取消息的content](https://github.com/Snapmali/discord-monitor/issues/10)。
 
 ## License
 

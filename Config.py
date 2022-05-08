@@ -60,6 +60,8 @@ def read_config() -> Config:
                 return Config(json.load(f))
         except FileNotFoundError:
             print('配置文件不存在')
+        except KeyboardInterrupt:
+            sys.exit(1)
         except Exception:
             print('配置文件读取出错，请检查配置文件各参数是否正确')
             if platform.system() == 'Windows':
