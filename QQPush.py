@@ -18,6 +18,11 @@ class QQPush:
         self.session = aiohttp.ClientSession()
 
     async def close(self):
+        """
+        关闭连接，释放资源
+
+        :return:
+        """
         await self.session.close()
 
     async def push_message(self, message, permission):

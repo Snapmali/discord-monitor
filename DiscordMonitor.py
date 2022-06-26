@@ -7,7 +7,7 @@ import platform
 import traceback
 
 import discord
-from aiohttp import ClientConnectorError, ClientProxyConnectionError
+from aiohttp import ClientConnectorError, ClientProxyConnectionError, InvalidURL
 from plyer import notification
 from pytz import timezone as tz
 
@@ -255,12 +255,15 @@ class DiscordMonitor(discord.Client):
                 else:
                     log_text = 'Fetching ID %s\'s username failed.' % uid
                     add_log(2, 'Discord', log_text)
+        # Deprecated: discord.py-self已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询
         self.connect_times += 1
         if not self.user.bot and self.user_monitoring:
             asyncio.create_task(self.polling(self.connect_times))
 
     async def polling(self, times):
         """
+        **Deprecated: discord.py-self已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询**
+
         轮询监视
 
         :param times: 连接次数，发生变动终止本次轮询，防止重复监视
@@ -273,6 +276,8 @@ class DiscordMonitor(discord.Client):
 
     async def watch_nick(self):
         """
+        **Deprecated: discord.py-self 已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询**
+
         非bot用户轮询监视用户名变动及昵称变动
 
         :return:
@@ -403,8 +408,7 @@ class DiscordMonitor(discord.Client):
                 self.username_dict[before.id]
             except KeyError:
                 self.username_dict[before.id] = [after.name, after.discriminator]
-            if self.username_dict[before.id][0] != after.name or self.username_dict[before.id][
-                1] != after.discriminator:
+            if self.username_dict[before.id][0] != after.name or self.username_dict[before.id][1] != after.discriminator:
                 before_screenname = self.username_dict[before.id][0] + '#' + self.username_dict[before.id][1]
                 after_screenname = after.name + '#' + after.discriminator
                 self.username_dict[before.id][0] = after.name
@@ -458,29 +462,28 @@ class DiscordMonitor(discord.Client):
 
     def delete_event(self, event):
         """
-        设置task延时删除set中的用户动态事件
+        延时删除set中的用户动态事件
 
         :param event: event
         :return:
         """
-        asyncio.create_task(self.delete_task(event))
+        asyncio.get_event_loop().call_later(5, self.event_set.remove, event)
 
-    async def delete_task(self, event):
+    async def close(self):
         """
-        5秒后删除set中的用户动态事件
+        关闭至discord的连接，以及QQPush模块的连接
 
-        :param event: event
         :return:
         """
-        await asyncio.sleep(5)
-        self.event_set.remove(event)
-
-    async def close_qq_session(self):
-        await self.qq_push.close()
+        await asyncio.gather(
+            super(DiscordMonitor, self).close(),
+            self.qq_push.close()
+        )
 
 
 def main():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     if config.bot:
         intents = discord.Intents.default()
         dc = DiscordMonitor(loop=loop, intents=intents)
@@ -489,19 +492,19 @@ def main():
     try:
         print('Logging in...')
         loop.run_until_complete(dc.start(config.token))
-    except ClientProxyConnectionError:
+    except (ClientProxyConnectionError, InvalidURL):
         print('代理错误，请检查代理设置')
     except (TimeoutError, ClientConnectorError):
         print('连接超时，请检查连接状态及代理设置')
     except discord.errors.LoginFailure:
-        print('登录失败，请检查Token及bot设置是否正确，或更新Token')
+        print('登录失败，请检查Token及bot设置是否正确，或更新Token，或检查是否使用了正确的discord.py依赖库')
     except KeyboardInterrupt:
         print("用户退出")
     except Exception:
         print('登录失败，请检查配置文件中各参数是否正确')
         traceback.print_exc()
     finally:
-        loop.run_until_complete(asyncio.gather(dc.close_qq_session(), dc.close()))
+        loop.run_until_complete(dc.close())
         # 2022.5.8：
         # Windows环境下aiohttp似乎会在程序退出释放内存时自动调用方法关闭事件循环导致报错，在此对平台进行特判
         # 暂未测试在Linux下的表现
