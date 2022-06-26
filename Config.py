@@ -11,7 +11,6 @@ class Config:
         self.cqhttp_url = data['coolq_url'].rstrip('/')
         self.cqhttp_token = data['coolq_token']
         self.proxy = data['proxy']
-        self.interval = data['interval']
         self.toast = data['toast']
         self.message_monitor = Config.MessageMonitor(data['message_monitor'])
         self.user_dynamic_monitor = Config.UserDynamicMonitor(data['user_dynamic_monitor'])

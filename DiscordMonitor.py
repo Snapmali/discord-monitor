@@ -41,9 +41,6 @@ class DiscordMonitor(discord.Client):
         self.event_set = set()
         self.status_dict = {'online': '在线', 'offline': '离线', 'idle': '闲置', 'dnd': '请勿打扰'}
         self.username_dict = {}
-        self.nick_dict = {}
-        self.interval = config.interval
-        self.connect_times = 0
         if platform.system() == 'Windows' and platform.release() == '10' and config.toast:
             self.do_toast = True
         else:
@@ -223,8 +220,7 @@ class DiscordMonitor(discord.Client):
 
     async def on_connect(self):
         """
-        监听连接事件，每次连接会刷新所监视用户的用户名列表，使用非bot用户监视时会另外刷新昵称列表。
-        若使用频道名监听消息则获取频道名对应ID。并启动轮询监视。
+        监听连接事件，每次连接会刷新所监视用户的用户名列表。
 
         重写自discord.Client
 
@@ -236,18 +232,12 @@ class DiscordMonitor(discord.Client):
         print(log_text + '\n')
         add_log(0, 'Discord', log_text)
         if self.user_monitoring:
-            is_bot = self.user.bot
             for uid in self.user_dynamic_user:
                 uid = int(uid)
                 user = None
                 for guild in self.guilds:
                     try:
                         user = await guild.fetch_member(uid)
-                        if not is_bot:
-                            try:
-                                self.nick_dict[uid][guild.id] = user.nick
-                            except:
-                                self.nick_dict[uid] = {guild.id: user.nick}
                     except:
                         continue
                 if user:
@@ -255,65 +245,6 @@ class DiscordMonitor(discord.Client):
                 else:
                     log_text = 'Fetching ID %s\'s username failed.' % uid
                     add_log(2, 'Discord', log_text)
-        # Deprecated: discord.py-self已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询
-        self.connect_times += 1
-        if not self.user.bot and self.user_monitoring:
-            asyncio.create_task(self.polling(self.connect_times))
-
-    async def polling(self, times):
-        """
-        **Deprecated: discord.py-self已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询**
-
-        轮询监视
-
-        :param times: 连接次数，发生变动终止本次轮询，防止重复监视
-        :return:
-        """
-        while times == self.connect_times:
-            await asyncio.sleep(self.interval)
-            if not self.user.bot and self.user_monitoring:
-                await self.watch_nick()
-
-    async def watch_nick(self):
-        """
-        **Deprecated: discord.py-self 已支持非bot用户的用户名、昵称、个人状态等的监视，无需设置轮询**
-
-        非bot用户轮询监视用户名变动及昵称变动
-
-        :return:
-        """
-        for uid in self.user_dynamic_user:
-            uid = int(uid)
-            user = None
-            for guild in self.guilds:
-                try:
-                    user = await guild.fetch_member(uid)
-                    try:
-                        self.nick_dict[uid][guild.id]
-                    except KeyError:
-                        try:
-                            self.nick_dict[uid][guild.id] = user.nick
-                        except KeyError:
-                            self.nick_dict[uid] = {guild.id: user.nick}
-                        continue
-                    if self.nick_dict[uid][guild.id] != user.nick:
-                        nick_prev = self.nick_dict[uid][guild.id]
-                        self.nick_dict[uid][guild.id] = user.nick
-                        await self.process_user_update(nick_prev, user.nick, user, '昵称更新')
-                except:
-                    continue
-            if user:
-                try:
-                    self.username_dict[uid]
-                except KeyError:
-                    self.username_dict[uid] = [user.name, user.discriminator]
-                    continue
-                if self.username_dict[uid][0] != user.name or self.username_dict[uid][1] != user.discriminator:
-                    before_screenname = self.username_dict[uid][0] + '#' + self.username_dict[uid][1]
-                    after_screenname = user.name + '#' + user.discriminator
-                    self.username_dict[uid][0] = user.name
-                    self.username_dict[uid][1] = user.discriminator
-                    await self.process_user_update(before_screenname, after_screenname, user, '用户名更新')
 
     async def on_disconnect(self):
         """

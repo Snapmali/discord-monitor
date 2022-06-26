@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import traceback
@@ -16,6 +17,7 @@ class QQPush:
         self.coolq_url = config.cqhttp_url
         self.coolq_token = config.cqhttp_token
         self.session = aiohttp.ClientSession()
+        self.is_closed = False
 
     async def close(self):
         """
@@ -23,6 +25,7 @@ class QQPush:
 
         :return:
         """
+        self.is_closed = True
         await self.session.close()
 
     async def push_message(self, message, permission):
@@ -106,6 +109,8 @@ class QQPush:
                           (id_type, qq_id, data)
                     add_log(0, 'PUSH', log)
                     break
-                time.sleep(5)
+                await asyncio.sleep(5)
+                if self.is_closed:
+                    break
                 continue
 

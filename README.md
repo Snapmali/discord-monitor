@@ -8,7 +8,7 @@
 通过监听discord.py事件监测Discord中的消息及用户动态。
 
 * 消息动态：可监测消息发送、消息编辑、消息删除、频道内消息标注（pin），可监测频道中所有消息，亦可由频道名、频道ID、用户ID指定被监测的频道及用户。
-* 用户动态：在指定被监测用户时，可通过Bot监视时可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新；使用用户（非Bot）监视时仅可监测用户的用户名及标签更新、Server内昵称更新。
+* 用户动态：在指定被监测用户时，可监测用户的用户名及标签更新、Server内昵称更新、在线状态更新、游戏动态更新。
 * Windows 10系统下可将动态推送至通知中心。
 * 可分别自定义消息动态与用户动态推送消息格式。其中对消息动态可通过关键词进行类别匹配与字符替换，支持正则表达式。
 * 可将监测到的动态由[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)等兼容[onebot]('https://github.com/howmanybots/onebot')接口标准的应用推送至QQ私聊及群聊，支持将本脚本与cqhttp应用异地部署。
@@ -79,9 +79,6 @@ QQ推送依赖cqhttp应用实现。其中[go-cqhttp](https://github.com/Mrs4s/go
     
     //网络代理的http地址，留空（即"proxy": ""）表示不设置代理
     "proxy": "Proxy URL, leave blank for no proxy, e.g. http://localhost:1080", 
-
-    //非Bot用户时的轮询间隔时间，单位为秒
-    "interval": 60,
 
     //是否将动态推送至Windows 10系统通知中，非Windows 10系统下此选项失效
     "toast": true,
@@ -213,8 +210,6 @@ John aa <user_name> bb \John cc <typo>
 #### 监测账户相关注意事项
 
 **需要注意，通过用户Token使用本脚本可能违反Discord使用协议（请参阅[Automated user accounts (self-bots)](https://support.discord.com/hc/en-us/articles/115002192352)），并可能导致账号封停。有条件的话建议使用Bot，否则请谨慎使用或使用小号（义眼）。**
-
-**同时，通过非Bot用户监视时，利用事件监测用户动态方法失效，仅可通过定时查询api方法监测用户用户名及标签更新、Server内昵称更新，此时动态将不会及时推送，同时无法监测在线状态更新及游戏动态更新。**
 
 另外对于bot用户，由于Discord会对bot请求用户动态以及server内用户列表进行限制，若需使用本脚本的用户动态监控，则需要在[Discord Application](https://discord.com/developers/applications)的Bot设置页中启用"PRESENCE INTENT"及"SERVER MEMBERS INTENT"。若不启用则用户动态监视功能失效，无其他影响。
 
