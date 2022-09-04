@@ -28,7 +28,7 @@
 
 ##### discord.py相关
 
-* 若使用Bot进行监视，可正常使用[discord.py](https://pypi.org/project/discord.py/) 1.7.0以上版本。
+* 若使用Bot进行监视，可正常使用[discord.py](https://pypi.org/project/discord.py/) 1.7.\*版本<b>（2.\*版本暂不支持）</b>。
 * 若使用用户（非Bot）进行监视，需使用其分支[discord.py-self](https://github.com/dolfies/discord.py-self)，具体原因可见[此issue](https://github.com/Snapmali/discord-monitor/issues/10)。
 
 由于二者包名相同，建议仅下载所需的库并与本脚本放置于同一目录下运行，或使用虚拟环境。
