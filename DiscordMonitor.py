@@ -102,6 +102,10 @@ class DiscordMonitor(discord.Client):
                 #image_base64 = base64.b64encode(image).decode("utf8")
                 #image_cqcodes.append(f"[CQ:image,file=base64://{image_base64}==,timeout=5]")
                 image_cqcodes.append(f"[CQ:image,file={attachment.url},timeout=5]")
+        for embed in message.embeds:
+            if embed.image.proxy_url:
+                image_cqcodes.append(f"[CQ:image,file={embed.image.proxy_url},timeout=5]")
+                attachment_urls.append(embed.image.proxy_url)
         attachment_str = ' ; '.join(attachment_urls)
         image_str = "".join(image_cqcodes)
         content = self.push_text_processor.sub(message.content)
